@@ -61,3 +61,5 @@ io64(ioObj, address, 0);
 5. 编辑刺激参数
 6. 开始记录
 
+- 注意事项：
+  - `rules.xlsx`未指定的nRepeat的声音，将默认使用设置界面中的nRepeat，其中文件名带`Control`的为界面中的nRepeat/3（指定了则不会/3）
