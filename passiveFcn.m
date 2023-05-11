@@ -4,7 +4,7 @@ function passiveFcn(app)
     dataPath = fullfile(app.dataPath, [datestr(now, 'yyyymmdd'), '-', app.subjectInfo.ID]);
     fsDevice = fs * 1e3;
 
-    [sounds, soundNames, fsSound] = loadSounds(pID);
+    [sounds, soundNames, fsSound, controlIdx] = loadSounds(pID);
 
     % Hint for manual starting
     [hintSound, fsHint] = audioread(['sounds\hint\', num2str(pID), '.mp3']);
@@ -12,7 +12,17 @@ function passiveFcn(app)
     KbGet(32, 20);
 
     sounds = cellfun(@(x) resampleData(reshape(x, [1, length(x)]), fsSound, fsDevice), sounds, 'UniformOutput', false);
-    orders = repmat(1:length(sounds), 1, nRepeat);
+    
+    temp = app.nRepeat(app.pIDsRules(app.pIDsRules == pID));
+    if length(temp) ~= length(sounds)
+        error('rules file does not match sound files.');
+    end
+    temp(isnan(temp) & ~controlIdx) = nRepeat;
+    temp(isnan(temp) & controlIdx) = nRepeat / 3;
+    orders = [];
+    for index = 1:length(temp)
+        orders = [orders, repmat(index, 1, temp(index))];
+    end
     orders = orders(randperm(length(orders)));
     
     reqlatencyclass = 2;
@@ -26,7 +36,7 @@ function passiveFcn(app)
     startTime = cell(length(orders), 1);
     estStopTime = cell(length(orders), 1);
     soundName = cell(length(orders), 1);
-    codes = 3 + orders;
+    codes = app.codes(app.pIDsRules(app.pIDsRules == pID));
 
     mTrigger(triggerType, ioObj, 1, address);
     WaitSecs(2);
@@ -41,7 +51,7 @@ function passiveFcn(app)
         end
         
         % Trigger for EEG recording
-        mTrigger(triggerType, ioObj, codes(index), address);
+        mTrigger(triggerType, ioObj, codes(orders(index)), address);
         
         [startTime{index}, ~, ~, estStopTime{index}] = PsychPortAudio('Stop', pahandle, 1, 1);
         soundName{index} = soundNames{orders(index)};
@@ -60,7 +70,7 @@ function passiveFcn(app)
     trialsData = struct('onset', startTime, ...
                         'offset', estStopTime, ...
                         'soundName', soundName, ...
-                        'code', num2cell(codes'), ...
+                        'code', num2cell(codes), ...
                         'push', pressTime, ...
                         'key', key);
     trialsData(cellfun(@isempty, startTime)) = [];

@@ -12,9 +12,17 @@ function trialsData = activeFcn(app)
     KbGet(32, 60);
 
     sounds = cellfun(@(x) resampleData(reshape(x, [1, length(x)]), fsSound, fsDevice), sounds, 'UniformOutput', false);
-    orders0 = 1:length(sounds);
-    orders = repmat(orders0(~controlIdx), 1, nRepeat);
-    orders = [orders, repmat(orders0(controlIdx), 1, ceil(nRepeat / 3))];
+
+    temp = app.nRepeat(app.pIDsRules(app.pIDsRules == pID));
+    if length(temp) ~= length(sounds)
+        error('rules file does not match sound files.');
+    end
+    temp(isnan(temp) & ~controlIdx) = nRepeat;
+    temp(isnan(temp) & controlIdx) = nRepeat / 3;
+    orders = [];
+    for index = 1:length(temp)
+        orders = [orders, repmat(index, 1, temp(index))];
+    end
     orders = orders(randperm(length(orders)));
     
     reqlatencyclass = 2;
@@ -28,7 +36,7 @@ function trialsData = activeFcn(app)
     startTime = cell(length(orders), 1);
     estStopTime = cell(length(orders), 1);
     soundName = cell(length(orders), 1);
-    codes = 3 + orders;
+    codes = app.codes(app.pIDsRules(app.pIDsRules == pID));
 
     mTrigger(triggerType, ioObj, 1, address);
     WaitSecs(2);
@@ -45,7 +53,7 @@ function trialsData = activeFcn(app)
         end
         
         % Trigger for EEG recording
-        mTrigger(triggerType, ioObj, codes(index), address);
+        mTrigger(triggerType, ioObj, codes(orders(index)), address);
 
         [startTime{index}, ~, ~, estStopTime{index}] = PsychPortAudio('Stop', pahandle, 1, 1);
         [pressTime{index}, key{index}] = KbGet([37, 39], choiceWin);
@@ -74,7 +82,7 @@ function trialsData = activeFcn(app)
     trialsData = struct('onset', startTime, ...
                         'offset', estStopTime, ...
                         'soundName', soundName, ...
-                        'code', num2cell(codes'), ...
+                        'code', num2cell(codes), ...
                         'push', pressTime, ...
                         'key', key);
     trialsData(cellfun(@isempty, startTime)) = [];
