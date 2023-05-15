@@ -1,0 +1,16 @@
+{
+    "_schemaVersion": "1.0.0",
+
+    "loadSounds": {
+        "inputs": [
+            {"mutuallyExclusiveGroup": [
+                [
+                    {"name": "pID", "kind": "required", "type": ["numeric", "positive", "integer", "scalar"]}
+                ],
+                [
+                    {"name": "path", "kind": "required", "type": ["folder"]}
+                ]
+            ]}
+        ]
+    }
+}
