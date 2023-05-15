@@ -13,6 +13,7 @@
 /codegen/
 
 #ignore MAT
+*.mat
 **/*.mat
 
 #ignore following files;

@@ -2,9 +2,9 @@
 
 #### 1. MATLAB PTB与App设置
 
-1. 安装MATLAB 2020b及以上版本
-2. 将`Psychtoolbox`和`Gstreamer`文件夹放在合适位置
-3. 右键我的电脑-属性-高级系统设置-环境变量-系统变量-新建
+1. 安装**`MATLAB 2020b`**及以上版本
+2. 将**`Psychtoolbox`**和**`Gstreamer`**文件夹放在合适位置
+3. 右键 `我的电脑`-`属性`-`高级系统设置`-`环境变量`-`系统变量`-`新建`
 
 > 变量名: `GSTREAMER_1_0_ROOT_MSVC_X86_64`
 >
@@ -55,10 +55,29 @@ io64(ioObj, address, 0);
 #### 4. App使用
 
 1. 编辑`rules.xlsx`，请务必按loadSounds导出的顺序填写，务必，务必，务必，务必！（强烈建议所有文件以数字`1_, 2_, 3_, ...`开头以便按一定顺序读取，对于超过10的请使用`1, 2, 3, ..., A_, B_, C_, ..., a_, b_, c_, ...`开头，MATLAB读取文件的文件名排序为数字-大写字母-小写字母）
+
+```matlab
+% 生成声音时按一定顺序
+% 文件命名 ord_param1-param1Val_param2-param2Val_...
+ord = char([48:57, 65:90, 97:122]'); % [0-9, A-Z, a-z]'
+for index = 1:length(nSounds)
+    filename = [ord(index), '_param1-', num2str(param1Val), '_param2', num2str(param2Val), '_', otherParamsNameValue, '.wav'];
+    audiowrite(filename, y, fs);
+end
+
+% 使用rulesGenerator.m根据文件名自动生成rules.xlsx
+% 将pID=2的rules拼接至原rules.xlsx表格下
+rulesGenerator("sounds\2", "rules.xlsx", 2);
+```
+
 2. 将刺激文件放进对应`sounds\{pID}`数字命名的文件夹下
+
 3. 命令行输入`mainApp`打开主界面
+
 4. 编辑被试信息
+
 5. 编辑刺激参数
+
 6. 开始记录
 
 - 注意事项：

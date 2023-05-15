@@ -12,5 +12,21 @@
                 ]
             ]}
         ]
+    },
+
+    "rulesGenerator": {
+        "inputs": [
+            {"name": "soundDir", "kind": "required", "type": ["folder"]},
+            {"name": "rulesPath", "kind": "required", "type": ["file=*.xlsx"]},
+            {"name": "pID", "kind": "required", "type": ["integer", "positive", "scalar"]},
+            {"name": "node0Tag", "kind": "ordered", "type":  [["@(x) isempty(x) || isnan(x)"], ["string"], ["char"]]},
+            {"name": "nodeTag", "kind": "ordered", "type":   [["@(x) isempty(x) || isnan(x)"], ["string"], ["char"]]},
+            {"name": "node0Hint", "kind": "ordered", "type": [["@(x) isempty(x) || isnan(x)"], ["string"], ["char"]]},
+            {"name": "nodeHint", "kind": "ordered", "type":  [["@(x) isempty(x) || isnan(x)"], ["string"], ["char"]]},
+            {"name": "apType", "kind": "ordered", "type":    ["choices={'active', 'passive'}"]},
+            {"name": "protocol", "kind": "ordered", "type":  [["@(x) isempty(x) || isnan(x)"], ["string"], ["char"]]},
+            {"name": "ISI", "kind": "ordered", "type":  [["@(x) isempty(x) || isnan(x)"], ["scalar", "positive"]]},
+            {"name": "nRepeat", "kind": "ordered", "type":  [["@(x) isempty(x) || isnan(x)"], ["integer", "positive", "vector"]]}
+        ]
     }
 }
