@@ -7,7 +7,11 @@ function passiveFcn(app)
     [sounds, soundNames, fsSound, controlIdx] = loadSounds(pID);
 
     % Hint for manual starting
-    [hintSound, fsHint] = audioread(['sounds\hint\', num2str(pID), '.mp3']);
+    try
+        [hintSound, fsHint] = audioread(['sounds\hint\', num2str(pID), '.mp3']);
+    catch
+        [hintSound, fsHint] = audioread('sounds\hint\active.mp3');
+    end
     playAudio(hintSound(:, 1)', fsHint, fsDevice);
     KbGet(32, 20);
 
