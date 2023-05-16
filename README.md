@@ -54,12 +54,13 @@ io64(ioObj, address, 0);
 
 #### 4. App使用
 
-1. 编辑`rules.xlsx`，请务必按loadSounds导出的顺序填写，务必，务必，务必，务必！（强烈建议所有文件以数字`1_, 2_, 3_, ...`开头以便按一定顺序读取，对于超过10的请使用`1, 2, 3, ..., A_, B_, C_, ..., a_, b_, c_, ...`开头，MATLAB读取文件的文件名排序为数字-大写字母-小写字母）
+1. 编辑`rules.xlsx`，请务必按loadSounds导出的顺序填写，务必，务必，务必，务必！（强烈建议所有文件以数字`1_, 2_, 3_, ...`开头以便按一定顺序读取，对于超过10的请使用`001, 002, ..., 100, 101, ...`开头，MATLAB读取文件的文件名排序为数字-大写字母-小写字母）
 
 ```matlab
 % 生成声音时按一定顺序
 % 文件命名 ord_param1-param1Val_param2-param2Val_...
-ord = char([48:57, 65:90, 97:122]'); % [0-9, A-Z, a-z]'
+% ord 001, 002, ..., 249, 250
+ord = arrayfun(@(x) strrep(x, ' ', '0'), num2str((1:250)'));
 for index = 1:length(nSounds)
     filename = [ord(index), '_param1-', num2str(param1Val), '_param2', num2str(param2Val), '_', otherParamsNameValue, '.wav'];
     audiowrite(filename, y, fs);

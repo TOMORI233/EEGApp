@@ -17,7 +17,7 @@
     "rulesGenerator": {
         "inputs": [
             {"name": "soundDir", "kind": "required", "type": ["folder"]},
-            {"name": "rulesPath", "kind": "required", "type": ["file=*.xlsx"]},
+            {"name": "rulesPath", "kind": "required"},
             {"name": "pID", "kind": "required", "type": ["integer", "positive", "scalar"]},
             {"name": "node0Tag", "kind": "ordered", "type":  [["@(x) isempty(x) || isnan(x)"], ["string"], ["char"]]},
             {"name": "nodeTag", "kind": "ordered", "type":   [["@(x) isempty(x) || isnan(x)"], ["string"], ["char"]]},

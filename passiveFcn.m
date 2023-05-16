@@ -4,13 +4,13 @@ function passiveFcn(app)
     dataPath = fullfile(app.dataPath, [datestr(now, 'yyyymmdd'), '-', app.subjectInfo.ID]);
     fsDevice = fs * 1e3;
 
-    [sounds, soundNames, fsSound, controlIdx] = loadSounds(pID);
+    [sounds, soundNames, fsSound] = loadSounds(pID);
 
     % Hint for manual starting
     try
         [hintSound, fsHint] = audioread(['sounds\hint\', num2str(pID), '.mp3']);
     catch
-        [hintSound, fsHint] = audioread('sounds\hint\active.mp3');
+        [hintSound, fsHint] = audioread('sounds\hint\passive start hint.mp3');
     end
     playAudio(hintSound(:, 1)', fsHint, fsDevice);
     KbGet(32, 20);
@@ -21,8 +21,7 @@ function passiveFcn(app)
     if length(temp) ~= length(sounds)
         error('rules file does not match sound files.');
     end
-    temp(isnan(temp) & ~controlIdx) = nRepeat;
-    temp(isnan(temp) & controlIdx) = nRepeat / 3;
+    temp(isnan(temp)) = nRepeat;
     orders = [];
     for index = 1:length(temp)
         orders = [orders, repmat(index, 1, temp(index))];
