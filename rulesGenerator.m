@@ -1,6 +1,30 @@
-function rulesGenerator(soundDir, rulesPath, pID, node0Tag, nodeTag, node0Hint, nodeHint, apType, protocol, ISI, nRepeat)
-    % Automatically generate rules.xlsx by sound file names
-    % For filename = ord_para1Name-para1Val_para2Name-para2Val_...
+function rulesGenerator(soundDir, rulesPath, pID, ...
+                        node0Tag, nodeTag, ... % nodetree tag (should be unique)
+                        node0Hint, nodeHint, ... % shown in UI phase selection nodetree
+                        apType, ... % "active" or "passive"
+                        protocol, ... % protocol name, eg "TB passive1", "Offset active2"
+                        ISI, ...
+                        nRepeat) % scalar (for all) or vector (for single)
+    % Automatically generate rules.xlsx by sound file names.
+    %
+    % If file of rulesPath exists, results will be added to the following rows
+    % with the former content reserved.
+    %
+    % Recommended file name format: ord_para1Name-para1Val_para2Name-para2Val_...
+    %
+    % Notice:
+    % Integer will be exported as number and others as string.
+    % Decimal is not recommended, which will be exported as string.
+    %
+    % Example:
+    %     rulesGenerator("sounds\1\", "rules start-end.xlsx", 1, ...
+    %                    "SESectionNode", "SEPhase1Node", ...
+    %                    "start-end效应部分", "第一阶段-阈值", ...
+    %                    "active", ...
+    %                    "SE active1", ...
+    %                    3.5, ...
+    %                    40);
+
     narginchk(3, 11);
 
     if nargin < 4  || isempty(node0Tag ), node0Tag  = nan; end
@@ -25,6 +49,8 @@ function rulesGenerator(soundDir, rulesPath, pID, node0Tag, nodeTag, node0Hint, 
 
     temp = cellfun(@(x) cellfun(@(y) string(y{2}), x), temp, "UniformOutput", false);
     paraVals = num2cell([temp{:}]', 1)';
+    numIdx = cellfun(@(x) all(arrayfun(@(y) all(isstrprop(y, "digit") | strcmpi(y, 'nan') | strcmpi(y, 'inf')), x)), paraVals);
+    paraVals(numIdx) = cellfun(@(x) str2double(x), paraVals(numIdx), "UniformOutput", false);
     paraVals = cellfun(@(x) mat2cell(x, ones(length(x), 1)), paraVals, "UniformOutput", false);
 
     n = length(soundNames);
