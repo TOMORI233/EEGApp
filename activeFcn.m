@@ -8,9 +8,9 @@ function trialsData = activeFcn(app)
 
     % Hint for manual starting
     try
-        [hintSound, fsHint] = audioread(['sounds\hint\', num2str(pID), '.mp3']);
+        [hintSound, fsHint] = audioread(fullfile(fileparts(mfilename("fullpath")), 'sounds\hint\', [num2str(pID), '.mp3']));
     catch
-        [hintSound, fsHint] = audioread('sounds\hint\active start hint.mp3');
+        [hintSound, fsHint] = audioread(fullfile(fileparts(mfilename("fullpath")), 'sounds\hint\active start hint.mp3'));
     end
     playAudio(hintSound(:, 1)', fsHint, fsDevice);
     KbGet(32, 20);
