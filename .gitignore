@@ -2,7 +2,7 @@
 #put it in the root folder
 
 #ignore sounds folder
-
+**/sounds/
 
 #ignore slprj folder
 **/slprj/
