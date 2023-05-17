@@ -79,16 +79,14 @@ function rulesGenerator(soundDir, rulesPath, pID, ...
     params = reshape([paraNames, paraVals]', [], 1);
     params = struct2table(struct(params{:}));
 
+    [pathstr, name, ext] = fileparts(rulesPath);
     if exist(rulesPath, "file")
         % Merge to former rules file (merge common parameters only)
         tb0 = readtable(rulesPath);
         writetable([tb0(:, 1:8); params(:, 1:8)], rulesPath);
-        [pathstr, name, ext] = fileparts(rulesPath);
-        writetable(params, fullfile(pathstr, strcat(name, "_new", ext)));
-    else
-        % Create new rules file
-        writetable(params, rulesPath);
     end
+    % Create new rules file
+    writetable(params, fullfile(pathstr, strcat(name, "_pID-", num2str(pID), ext)));
 
     return;
 end

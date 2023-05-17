@@ -17,7 +17,7 @@ function passiveFcn(app)
 
     sounds = cellfun(@(x) resampleData(reshape(x, [1, length(x)]), fsSound, fsDevice), sounds, 'UniformOutput', false);
     
-    temp = app.nRepeat(app.pIDsRules(app.pIDsRules == pID));
+    temp = app.nRepeat(app.pIDsRules == pID);
     if length(temp) ~= length(sounds)
         error('rules file does not match sound files.');
     end
