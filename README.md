@@ -62,7 +62,7 @@ io64(ioObj, address, 0);
 % ord 001, 002, ..., 249, 250
 ord = arrayfun(@(x) strrep(x, ' ', '0'), num2str((1:250)'));
 for index = 1:length(nSounds)
-    filename = [ord(index), '_param1-', num2str(param1Val), '_param2', num2str(param2Val), '_', otherParamsNameValue, '.wav'];
+    filename = [ord(index, :), '_param1-', num2str(param1Val), '_param2', num2str(param2Val), '_', otherParamsNameValue, '.wav'];
     audiowrite(filename, y, fs);
 end
 

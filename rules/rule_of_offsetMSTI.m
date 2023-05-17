@@ -5,8 +5,8 @@ folders = dir(rootPath);
 folders(contains({folders.name}', [".", "..", "hint"])) = [];
 pID = str2double(string({folders.name}));
 soundDir = string(cellfun(@(x) [rootPath, '\', num2str(x)], num2cell(pID), "UniformOutput", false));
-rulesPath = '..\rules\rules offsetMSTI.xlsx';
-
+rulesPath = '..\rules\offset MSTI\rules offsetMSTI.xlsx';
+mkdir(fileparts(rulesPath));
 node0Hint = ["offset被动", "offset被动", "MSTI被动", "offset主动"];
 nodeHint = ["阶段一-ICI Screening", "阶段二-Duration(4+16ms)", "阶段一-3ms/18.6ms", "阶段一-ICI Screening"];
 apType = ["passive", "passive", "passive", "active"];
