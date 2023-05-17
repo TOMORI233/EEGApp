@@ -3,7 +3,8 @@ function rulesGenerator(soundDir, rulesPath, pID, ...
                         apType, ... % "active" or "passive"
                         protocol, ... % protocol name, eg "TB passive1", "Offset active2"
                         ISI, ...
-                        nRepeat) % scalar (for all) or vector (for single)
+                        nRepeat, ... % scalar (for all) or vector (for single)
+                        cueLag) % for active protocols, the time lag from the offset of prior sound to the cue for choice
     % Automatically generate rules.xlsx by sound file names.
     %
     % If file of rulesPath exists, results will be added to the following rows
@@ -21,9 +22,10 @@ function rulesGenerator(soundDir, rulesPath, pID, ...
     %                    "active", ...
     %                    "SE active1", ...
     %                    3.5, ...
-    %                    40);
+    %                    40, ...
+    %                    0.8);
 
-    narginchk(3, 9);
+    narginchk(3, 10);
 
     if nargin < 4 || isempty(node0Hint), node0Hint = nan; end
     if nargin < 5 || isempty(nodeHint ), nodeHint  = nan; end
@@ -31,6 +33,7 @@ function rulesGenerator(soundDir, rulesPath, pID, ...
     if nargin < 7 || isempty(protocol ), protocol  = nan; end
     if nargin < 8 || isempty(ISI      ), ISI       = nan; end
     if nargin < 9 || isempty(nRepeat  ), nRepeat   = nan; end
+    if nargin < 10 || isempty(cueLag  ), cueLag    = nan; end
 
     files = dir(soundDir);
     [~, soundNames] = cellfun(@(x) fileparts(x), {files.name}, "UniformOutput", false);
@@ -65,6 +68,7 @@ function rulesGenerator(soundDir, rulesPath, pID, ...
                  {'code'}; ...
                  {'ISI'}; ...
                  {'nRepeat'}; ...
+                 {'cueLag'}; ...
                  paraNames];
     paraVals = [{repmat({pID},       [n, 1])}; ...
                 {repmat({node0Hint}, [n, 1])}; ...
@@ -73,7 +77,8 @@ function rulesGenerator(soundDir, rulesPath, pID, ...
                 {repmat({protocol},  [n, 1])}; ...
                 {mat2cell((4:3 + n)', ones(n, 1))}; ...
                 {repmat({ISI},       [n, 1])}; ...
-                nRepeat; ...
+                nRepeat;
+                cueLag;
                 paraVals];
 
     params = reshape([paraNames, paraVals]', [], 1);
@@ -83,10 +88,17 @@ function rulesGenerator(soundDir, rulesPath, pID, ...
     if exist(rulesPath, "file")
         % Merge to former rules file (merge common parameters only)
         tb0 = readtable(rulesPath);
-        writetable([tb0(:, 1:8); params(:, 1:8)], rulesPath);
+        try
+            writetable([tb0; params], rulesPath);
+        catch
+            writetable([tb0(:, 1:9); params(:, 1:9)], rulesPath);
+            % Create new rules file
+            writetable(params, fullfile(pathstr, strcat(name, "_pID-", num2str(pID), ext)));
+        end
+    else
+        % Create new rules file
+        writetable(params, rulesPath);
     end
-    % Create new rules file
-    writetable(params, fullfile(pathstr, strcat(name, "_pID-", num2str(pID), ext)));
-
+   
     return;
 end

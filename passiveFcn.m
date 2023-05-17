@@ -17,6 +17,11 @@ function passiveFcn(app)
 
     sounds = cellfun(@(x) resampleData(reshape(x, [1, length(x)]), fsSound, fsDevice), sounds, 'UniformOutput', false);
     
+    % ISI
+    ISIs = sortrows(unique([ISIs, app.pIDsRules], "rows"), 2, "ascend");
+    ISIs = ISIs(:, 1);
+    
+    % nRepeat
     temp = app.nRepeat(app.pIDsRules == pID);
     if length(temp) ~= length(sounds)
         error('rules file does not match sound files.');
@@ -24,15 +29,15 @@ function passiveFcn(app)
     temp(isnan(temp)) = nRepeat;
     orders = [];
     for index = 1:length(temp)
-        orders = [orders, repmat(index, 1, temp(index))];
-    end
+        orders  = [orders, repmat(index, 1, temp(index))];
+    end 
     orders = orders(randperm(length(orders)));
     
     reqlatencyclass = 2;
     nChs = 2;
     mode = 1;
     pahandle = PsychPortAudio('Open', [], mode, reqlatencyclass, fsDevice, nChs);
-    PsychPortAudio('Volume', pahandle, volumn);
+    PsychPortAudio('Volume', pahandle, volumn); 
     
     pressTime = cell(length(orders), 1);
     key = cell(length(orders), 1);

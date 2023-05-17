@@ -1,33 +1,54 @@
 function trialsData = activeFcn(app)
     parseStruct(app.params);
-    pID = app.pIDList(app.pIDIndex);
+     pID = app.pIDList(app.pIDIndex);
     dataPath = fullfile(app.dataPath, [datestr(now, 'yyyymmdd'), '-', app.subjectInfo.ID]);
     fsDevice = fs * 1e3;
 
     [sounds, soundNames, fsSound] = loadSounds(pID);
+    
 
     % Hint for manual starting
-    try
+     try
         [hintSound, fsHint] = audioread(fullfile(fileparts(mfilename("fullpath")), 'sounds\hint\', [num2str(pID), '.mp3']));
     catch
         [hintSound, fsHint] = audioread(fullfile(fileparts(mfilename("fullpath")), 'sounds\hint\active start hint.mp3'));
+     end
+
+    unique()
+
+    try
+        [cueSound, fsCue] = audioread('sounds\hint\cue.wav');
+        cueSound = resampleData(reshape(cueSound, [1, length(cueSound)]), fsCue, fsDevice);
     end
     playAudio(hintSound(:, 1)', fsHint, fsDevice);
     KbGet(32, 20);
 
     sounds = cellfun(@(x) resampleData(reshape(x, [1, length(x)]), fsSound, fsDevice), sounds, 'UniformOutput', false);
+    
+    % ISI
+    ISIs = sortrows(unique([ISIs, app.pIDsRules], "rows"), 2, "ascend");
+    ISIs = ISIs(:, 1);
 
+    % nRepeat & cueLag
     temp = app.nRepeat(app.pIDsRules == pID);
-    if length(temp) ~= length(sounds)
+    tempCue = app.cueLag(app.pIDsRules == pID);
+    if length(temp) ~= length(sounds) || length(tempCue) ~= length(sounds)
         error('rules file does not match sound files.');
     end
     temp(isnan(temp)) = nRepeat;
+    tempCue(isnan(tempCue)) = cueLag;
     orders = [];
+    cueLags = [];
     for index = 1:length(temp)
         orders = [orders, repmat(index, 1, temp(index))];
+        cueLags = [cueLags, tempCue(index)*ones(1, temp(index))];
     end
-    orders = orders(randperm(length(orders)));
+    idx = randperm(length(orders));
+    orders = orders(idx);
+    cueLags = cueLags(idx);
     
+
+
     reqlatencyclass = 2;
     nChs = 2;
     mode = 1;
@@ -39,7 +60,7 @@ function trialsData = activeFcn(app)
     startTime = cell(length(orders), 1);
     estStopTime = cell(length(orders), 1);
     soundName = cell(length(orders), 1);
-    codes = app.codes(app.pIDsRules == pID);
+    codes = app.codes(app.pIDsRules == pID); 
 
     mTrigger(triggerType, ioObj, 1, address);
     WaitSecs(2);
@@ -59,7 +80,16 @@ function trialsData = activeFcn(app)
         mTrigger(triggerType, ioObj, codes(orders(index)), address);
 
         [startTime{index}, ~, ~, estStopTime{index}] = PsychPortAudio('Stop', pahandle, 1, 1);
-        [pressTime{index}, key{index}] = KbGet([37, 39], choiceWin);
+
+        if  cueLags(index) > 0
+            PsychPortAudio('FillBuffer', pahandle, repmat(cueSound, 2, 1));
+            WaitSecs(cueLags(index));
+            PsychPortAudio('Start', pahandle, 1, 0, 1);
+            PsychPortAudio('Stop', pahandle, 1, 1);
+            [pressTime{index}, key{index}] = KbGet([37, 39], choiceWin-cueLags(index));
+        else
+            [pressTime{index}, key{index}] = KbGet([37, 39], choiceWin);
+        end
 
         if key{index} == 37 % left arrow
             mTrigger(triggerType, ioObj, 2, address); % diff
