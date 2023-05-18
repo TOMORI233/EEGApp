@@ -91,8 +91,6 @@ function passiveFcn(app)
     end
 
     WaitSecs(5);
-    [hintSound, fsHint] = audioread('sounds\hint\end.mp3');
-    playAudio(hintSound(:, 1)', fsHint, fsDevice);
 
     if strcmp(app.status, 'start')
 
@@ -104,7 +102,11 @@ function passiveFcn(app)
             app.StopButton.Enable = 'off';
             app.PhaseSelectTree.Enable = 'on';
             app.StateLabel.Text = '本次试验已完成';
+            [hintSound, fsHint] = audioread(fullfile(fileparts(mfilename("fullpath")), 'sounds\hint\end of section.mp3'));
+            playAudio(hintSound(:, 1)', fsHint, fsDevice);
         else
+            [hintSound, fsHint] = audioread(fullfile(fileparts(mfilename("fullpath")), 'sounds\hint\end of all.mp3'));
+            playAudio(hintSound(:, 1)', fsHint, fsDevice);
             app.NextButton.Enable = 'on';
             app.timerInit;
             start(app.mTimer);

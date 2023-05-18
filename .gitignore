@@ -2,7 +2,8 @@
 #put it in the root folder
 
 #ignore sounds folder
-**/sounds/
+sounds/
+!sounds/hint/
 
 #ignore slprj folder
 **/slprj/
