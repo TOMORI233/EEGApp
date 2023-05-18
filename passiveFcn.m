@@ -82,7 +82,7 @@ function passiveFcn(app)
                         'push', pressTime, ...
                         'key', key);
     trialsData(cellfun(@isempty, startTime)) = [];
-    protocol = app.protocol{pID};
+    protocol = app.protocol{app.pIDIndex};
 
     if ~exist(fullfile(dataPath, [num2str(pID), '.mat']), 'file')
         save(fullfile(dataPath, [num2str(pID), '.mat']), "trialsData", "protocol");
