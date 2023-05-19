@@ -70,7 +70,7 @@ function trialsData = activeFcn(app)
         else
             PsychPortAudio('Start', pahandle, 1, startTime{index - 1} + ISIs(pID), 1);
         end
-    
+
         % Trigger for EEG recording
         mTrigger(triggerType, ioObj, codes(orders(index)), address);
     
