@@ -11,7 +11,11 @@
 > 变量值: `根路径\gstreamer\1.0\msvc_x86_64\`
 
 4. 在MATLAB中打开`根路径\Psychtoolbox-3-3.xx\Psychtoolbox`，打开运行`SetupPsychtoolbox.m`。MATLAB命令行中若无`Screen()无法使用`的相关提示则表明配置完成，否则检查`Gstreamer`的安装（可自行另外下载安装`PTB`和`Gstreamer`，配置方法相同）
+
+以下针对已经打包的App：
+
 5. 运行`for_redistribution`文件夹下的`MyAppInstaller.mcr`完成`MATLAB_runtime`的本地安装
+
 6. 运行`for_redistribution_files_only`文件夹下的`MyApp.exe`即可
 
 #### 2. LTP并口设置
@@ -75,11 +79,11 @@ rulesGenerator("sounds\2", "rules.xlsx", 2);
 
 3. 命令行输入`mainApp`打开主界面
 
-4. 编辑被试信息
+4. 编辑被试信息：带*号为必填项
 
-5. 编辑刺激参数
+5. 编辑刺激参数：请反复确认默认播放设备的采样率以及触发方式，默认为None即无触发
 
 6. 开始记录
 
 - 注意事项：
-  - `rules.xlsx`未指定的nRepeat的声音，将默认使用设置界面中的nRepeat，其中文件名带`Control`的为界面中的nRepeat/3（指定了则不会/3）
+  - ~~`rules.xlsx`未指定的nRepeat的声音，将默认使用设置界面中的nRepeat，其中文件名带`Control`的为界面中的nRepeat/3（指定了则不会/3）~~ 文件名带Control将不再影响次数，请在相应`rules.xlsx`中对`nRepeat`进行设置。

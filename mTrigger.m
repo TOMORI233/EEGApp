@@ -2,7 +2,7 @@ function mTrigger(triggerType, ioObj, code, address)
     disp(['Trigger: ', num2str(code)]);
 
     if strcmpi(triggerType, 'LTP')
-        % For curry8 and LTP test
+        % For LTP (curry 8)
         io64(ioObj, address, code);
         WaitSecs(0.01);
         io64(ioObj, address, 0);
@@ -10,7 +10,10 @@ function mTrigger(triggerType, ioObj, code, address)
         % For neuracle
         ioObj.OutputEventData(code);
     elseif strcmpi(triggerType, 'None')
-        % For behavior or non-behavior only
+        % For no trigger
+    elseif strcmpi(triggerType, 'COM')
+        % For COM
+        write(ioObj, code, 'uint8');
     else
         error('Invalid trigger type.');
     end
