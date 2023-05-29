@@ -23,8 +23,7 @@ function trialsData = activeFcn(app)
     sounds = cellfun(@(x) resampleData(reshape(x, [1, length(x)]), fsSound, fsDevice), sounds, 'UniformOutput', false);
     
     % ISI
-    ISIs = sortrows(unique([ISIs, app.pIDsRules], "rows"), 2, "ascend");
-    ISIs = ISIs(:, 1);
+    ISI = mode(ISIs(app.pIDsRules == pID));
     
     % nRepeat & cueLag
     temp = app.nRepeat(app.pIDsRules == pID);
@@ -32,7 +31,11 @@ function trialsData = activeFcn(app)
     if length(temp) ~= length(sounds) || length(tempCue) ~= length(sounds)
         error('rules file does not match sound files.');
     end
-    temp(isnan(temp)) = nRepeat;
+    if useSettingnRepeat
+        temp(:) = nRepeat;
+    else
+        temp(isnan(temp)) = nRepeat;
+    end
     tempCue(isnan(tempCue)) = cueLag;
     orders = [];
     cueLags = [];
@@ -46,8 +49,8 @@ function trialsData = activeFcn(app)
     
     reqlatencyclass = 2;
     nChs = 2;
-    mode = 1;
-    pahandle = PsychPortAudio('Open', [], mode, reqlatencyclass, fsDevice, nChs);
+    optMode = 1;
+    pahandle = PsychPortAudio('Open', [], optMode, reqlatencyclass, fsDevice, nChs);
     PsychPortAudio('Volume', pahandle, volumn);
     
     pressTime = cell(length(orders), 1);
@@ -68,7 +71,7 @@ function trialsData = activeFcn(app)
         if index == 1
             PsychPortAudio('Start', pahandle, 1, 0, 1);
         else
-            PsychPortAudio('Start', pahandle, 1, startTime{index - 1} + ISIs(pID), 1);
+            PsychPortAudio('Start', pahandle, 1, startTime{index - 1} + ISI, 1);
         end
     
         % Trigger for EEG recording
@@ -93,7 +96,7 @@ function trialsData = activeFcn(app)
         end
     
         soundName{index} = soundNames{orders(index)};
-        app.StateLabel.Text = strcat(app.protocolList{app.pIDList(app.pIDIndex)}, '(Total: ', num2str(index), '/', num2str(length(orders)), ', Miss: ', num2str(nMiss), ')');
+        app.StateLabel.Text = strcat(app.protocolList.Text{app.protocolList.pID == app.pIDList(app.pIDIndex)}, '(Total: ', num2str(index), '/', num2str(length(orders)), ', Miss: ', num2str(nMiss), ')');
     
         % For termination
         pause(0.1);

@@ -18,15 +18,18 @@ function passiveFcn(app)
     sounds = cellfun(@(x) resampleData(reshape(x, [1, length(x)]), fsSound, fsDevice), sounds, 'UniformOutput', false);
     
     % ISI
-    ISIs = sortrows(unique([ISIs, app.pIDsRules], "rows"), 2, "ascend");
-    ISIs = ISIs(:, 1);
+    ISI = mode(ISIs(app.pIDsRules == pID));
     
     % nRepeat
     temp = app.nRepeat(app.pIDsRules == pID);
     if length(temp) ~= length(sounds)
         error('rules file does not match sound files.');
     end
-    temp(isnan(temp)) = nRepeat;
+    if useSettingnRepeat
+        temp(:) = nRepeat;
+    else
+        temp(isnan(temp)) = nRepeat;
+    end
     orders = [];
     for index = 1:length(temp)
         orders  = [orders, repmat(index, 1, temp(index))];
@@ -35,8 +38,8 @@ function passiveFcn(app)
     
     reqlatencyclass = 2;
     nChs = 2;
-    mode = 1;
-    pahandle = PsychPortAudio('Open', [], mode, reqlatencyclass, fsDevice, nChs);
+    optMode = 1;
+    pahandle = PsychPortAudio('Open', [], optMode, reqlatencyclass, fsDevice, nChs);
     PsychPortAudio('Volume', pahandle, volumn); 
     
     pressTime = cell(length(orders), 1);
@@ -55,7 +58,7 @@ function passiveFcn(app)
         if index == 1
             PsychPortAudio('Start', pahandle, 1, 0, 1);
         else
-            PsychPortAudio('Start', pahandle, 1, startTime{index - 1} + ISIs(pID), 1);
+            PsychPortAudio('Start', pahandle, 1, startTime{index - 1} + ISI, 1);
         end
         
         % Trigger for EEG recording
@@ -63,7 +66,7 @@ function passiveFcn(app)
         
         [startTime{index}, ~, ~, estStopTime{index}] = PsychPortAudio('Stop', pahandle, 1, 1);
         soundName{index} = soundNames{orders(index)};
-        app.StateLabel.Text = strcat(app.protocolList{app.pIDList(app.pIDIndex)}, '(Total: ', num2str(index), '/', num2str(length(orders)), ')');
+        app.StateLabel.Text = strcat(app.protocolList.Text{app.protocolList.pID == app.pIDList(app.pIDIndex)}, '(Total: ', num2str(index), '/', num2str(length(orders)), ')');
 
         % For termination
         pause(0.1);
