@@ -9,7 +9,6 @@ function ioObj = InitTrigger(triggerType, COM)
     elseif strcmpi(triggerType, 'None')
         ioObj = [];
     elseif strcmpi(triggerType, 'COM')
-        delete(instrfindall);
         ioObj = serialport(strcat("COM", num2str(COM)), 115200);
     else
         error('Invalid trigger type.');
