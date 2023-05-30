@@ -1,8 +1,10 @@
-function rulesGenerator(soundDir, rulesPath, pID, ...
+function rulesGenerator(soundDir, ... % dir path of sound files
+                        rulesPath, ... % full path of rules.xlsx
+                        pID, ... % protocol ID, positive integer scalar
                         node0Hint, nodeHint, ... % shown in UI phase selection nodetree
                         apType, ... % "active" or "passive"
                         protocol, ... % protocol name, eg "TB passive1", "Offset active2"
-                        ISI, ...
+                        ISI, ... % positive scalar
                         nRepeat, ... % scalar (for all) or vector (for single)
                         cueLag) % for active protocols, the time lag from the offset of prior sound to the cue for choice
     % Automatically generate rules.xlsx by sound file names.
@@ -86,15 +88,19 @@ function rulesGenerator(soundDir, rulesPath, pID, ...
 
     [pathstr, name, ext] = fileparts(rulesPath);
     if exist(rulesPath, "file")
-        % Merge to former rules file (merge common parameters only)
         tb0 = readtable(rulesPath);
+
         try
             writetable([tb0; params], rulesPath);
-        catch
+        catch ME
+            Msgbox(ME.message, "Error");
+
+            % Merge to former rules file (merge common parameters only)
             writetable([tb0(:, 1:9); params(:, 1:9)], rulesPath);
-            % Create new rules file
+            % Create new rules file for a specific protocol
             writetable(params, fullfile(pathstr, strcat(name, "_pID-", num2str(pID), ext)));
         end
+
     else
         % Create new rules file
         writetable(params, rulesPath);

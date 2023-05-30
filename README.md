@@ -90,3 +90,4 @@ rulesGenerator("sounds\2", "rules.xlsx", 2);
 
 - 注意事项：
   - ~~`rules.xlsx`未指定的nRepeat的声音，将默认使用设置界面中的nRepeat，其中文件名带`Control`的为界面中的nRepeat/3（指定了则不会/3）~~ 文件名带Control将不再影响次数，请在相应`rules.xlsx`中对`nRepeat`进行设置。
+  - 可以在参数设置中勾选`强制`以将该重复次数应用于所有声音
