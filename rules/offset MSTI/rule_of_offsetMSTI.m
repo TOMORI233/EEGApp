@@ -1,6 +1,6 @@
 addpath(genpath(fileparts(fileparts(mfilename("fullpath")))), '-begin');
 cd(fileparts(mfilename("fullpath")));
-rootPath = '..\sounds';
+rootPath = '..\..\sounds';
 folders = dir(rootPath);
 folders(contains({folders.name}', [".", "..", "hint"])) = [];
 pID = str2double(string({folders.name}));
