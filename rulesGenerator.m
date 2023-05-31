@@ -15,8 +15,7 @@ function rulesGenerator(soundDir, ... % dir path of sound files
     % Recommended file name format: ord_para1Name-para1Val_para2Name-para2Val_...
     %
     % Notice:
-    % Integer will be exported as number and others as string.
-    % Decimal is not recommended, which will be exported as string.
+    % Integer, decimal and special values (inf and nan) will be exported as number and others as string.
     %
     % Example:
     %     rulesGenerator("sounds\1\", "rules start-end.xlsx", 1, ...
@@ -50,7 +49,7 @@ function rulesGenerator(soundDir, ... % dir path of sound files
 
     temp = cellfun(@(x) cellfun(@(y) string(y{2}), x), temp, "UniformOutput", false);
     paraVals = num2cell([temp{:}]', 1)';
-    numIdx = cellfun(@(x) all(arrayfun(@(y) all(isstrprop(y, "digit") | strcmpi(y, 'nan') | strcmpi(y, 'inf')), x)), paraVals);
+    numIdx = cellfun(@(x) all(arrayfun(@(y) all(isstrprop(strrep(y, '.', ''), "digit") | all(isstrprop(y, "digit")) | strcmpi(y, 'nan') | strcmpi(y, 'inf')), x)), paraVals);
     paraVals(numIdx) = cellfun(@(x) str2double(x), paraVals(numIdx), "UniformOutput", false);
     paraVals = cellfun(@(x) mat2cell(x, ones(length(x), 1)), paraVals, "UniformOutput", false);
 
