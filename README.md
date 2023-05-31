@@ -2,7 +2,10 @@
 
 #### 1. MATLAB PTB与App设置
 
-1. 安装**`MATLAB 2020b`**及以上版本
+1. 安装**`MATLAB 2020b`**及以上版本，以及在附加功能中安装以下工具包
+
+> Signal processing toolbox
+
 2. 将**`Psychtoolbox`**和**`Gstreamer`**文件夹放在合适位置
 3. 右键 `我的电脑`-`属性`-`高级系统设置`-`环境变量`-`系统变量`-`新建`
 
