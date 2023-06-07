@@ -133,7 +133,8 @@ function trialsData = activeFcn(app)
             app.StartButton.Enable = 'off';
             app.NextButton.Enable = 'off';
             app.StopButton.Enable = 'off';
-            app.PhaseSelectTree.Enable = 'on';
+            app.PhaseSelectPanel.Enable = 'on';
+            app.DataPathPanel.Enable = 'on';
             app.StateLabel.Text = '本次试验已完成';
             [hintSound, fsHint] = audioread(fullfile(fileparts(mfilename("fullpath")), 'sounds\hint\end of all.mp3'));
             playAudio(hintSound(:, 1)', fsHint, fsDevice);
