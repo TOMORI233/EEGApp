@@ -7,103 +7,115 @@ function rulesGenerator(soundDir, ... % dir path of sound files
                         ISI, ... % positive scalar
                         nRepeat, ... % scalar (for all) or vector (for single)
                         cueLag) % for active protocols, the time lag from the offset of prior sound to the cue for choice
-    % Automatically generate rules.xlsx by sound file names.
-    %
-    % If file of rulesPath exists, results will be added to the following rows
-    % with the former content reserved.
-    %
-    % Recommended file name format: ord_para1Name-para1Val_para2Name-para2Val_...
-    %
-    % Notice:
-    % Integer, decimal and special values (inf and nan) will be exported as number and others as string.
-    %
-    % Example:
-    %     rulesGenerator("sounds\1\", "rules start-end.xlsx", 1, ...
-    %                    "start-end效应部分", "第一阶段-阈值", ...
-    %                    "active", ...
-    %                    "SE active1", ...
-    %                    3.5, ...
-    %                    40, ...
-    %                    0.8);
+% Automatically generate rules.xlsx by sound file names.
+%
+% If file of rulesPath exists, its content will be reordered by pID (ascend) first 
+% and the content of the same pID will be overrided.
+%
+% Recommended file name format: ord_para1Name-para1Val_para2Name-para2Val_...
+%
+% Notice:
+% Integer, decimal and special values (inf and nan) will be exported as number and others as string.
+%
+% Example:
+%     rulesGenerator("sounds\1\", "rules start-end.xlsx", 1, ...
+%                    "start-end效应部分", "第一阶段-阈值", ...
+%                    "active", ...
+%                    "SE active1", ...
+%                    3.5, ...
+%                    40, ...
+%                    0.8);
 
-    narginchk(3, 10);
+narginchk(3, 10);
 
-    if nargin < 4 || isempty(node0Hint), node0Hint = nan; end
-    if nargin < 5 || isempty(nodeHint ), nodeHint  = nan; end
-    if nargin < 6 || isempty(apType   ), apType    = nan; end
-    if nargin < 7 || isempty(protocol ), protocol  = nan; end
-    if nargin < 8 || isempty(ISI      ), ISI       = nan; end
-    if nargin < 9 || isempty(nRepeat  ), nRepeat   = nan; end
-    if nargin < 10 || isempty(cueLag  ), cueLag    = nan; end
+if nargin < 4  || isempty(node0Hint), node0Hint = nan; end
+if nargin < 5  || isempty(nodeHint ), nodeHint  = nan; end
+if nargin < 6  || isempty(apType   ), apType    = nan; end
+if nargin < 7  || isempty(protocol ), protocol  = nan; end
+if nargin < 8  || isempty(ISI      ), ISI       = nan; end
+if nargin < 9  || isempty(nRepeat  ), nRepeat   = nan; end
+if nargin < 10 || isempty(cueLag   ), cueLag    = nan; end
 
-    files = dir(soundDir);
-    [~, soundNames] = cellfun(@(x) fileparts(x), {files.name}, "UniformOutput", false);
-    soundNames = soundNames(3:end)';
+files = dir(soundDir);
+[~, soundNames] = cellfun(@(x) fileparts(x), {files.name}, "UniformOutput", false);
+soundNames = soundNames(3:end)';
 
-    % Parse parameters from sound names
-    temp = cellfun(@(x) split(x, '_'), soundNames, "UniformOutput", false);
-    temp = cellfun(@(x) x(2:end), temp, "UniformOutput", false);
-    temp = cellfun(@(x) cellfun(@(y) split(y, '-'), x, "UniformOutput", false), temp, "UniformOutput", false);
-    
-    paraNames = cellfun(@(x) x{1}, temp{1}, "UniformOutput", false);
+% Parse parameters from sound names
+temp = cellfun(@(x) split(x, '_'), soundNames, "UniformOutput", false);
+temp = cellfun(@(x) x(2:end), temp, "UniformOutput", false);
+temp = cellfun(@(x) cellfun(@(y) split(y, '-'), x, "UniformOutput", false), temp, "UniformOutput", false);
 
-    temp = cellfun(@(x) cellfun(@(y) string(y{2}), x), temp, "UniformOutput", false);
-    paraVals = num2cell([temp{:}]', 1)';
-    numIdx = cellfun(@(x) all(arrayfun(@(y) all(isstrprop(strrep(y, '.', ''), "digit") | all(isstrprop(y, "digit")) | strcmpi(y, 'nan') | strcmpi(y, 'inf')), x)), paraVals);
-    paraVals(numIdx) = cellfun(@(x) str2double(x), paraVals(numIdx), "UniformOutput", false);
-    paraVals = cellfun(@(x) mat2cell(x, ones(length(x), 1)), paraVals, "UniformOutput", false);
+paraNames = cellfun(@(x) x{1}, temp{1}, "UniformOutput", false);
 
-    n = length(soundNames);
+temp = cellfun(@(x) cellfun(@(y) string(y{2}), x), temp, "UniformOutput", false);
+paraVals = num2cell([temp{:}]', 1)';
+numIdx = cellfun(@(x) all(arrayfun(@(y) all(isstrprop(strrep(y, '.', ''), "digit") | all(isstrprop(y, "digit")) | strcmpi(y, 'nan') | strcmpi(y, 'inf')), x)), paraVals);
+paraVals(numIdx) = cellfun(@(x) str2double(x), paraVals(numIdx), "UniformOutput", false);
+paraVals = cellfun(@(x) mat2cell(x, ones(length(x), 1)), paraVals, "UniformOutput", false);
 
-    if isscalar(nRepeat)
-        nRepeat = {repmat({nRepeat}, [n, 1])};
-    else
-        nRepeat = mat2cell(reshape(nRepeat, [length(nRepeat), 1]), ones(n, 1));
+n = length(soundNames);
+
+if isscalar(nRepeat)
+    nRepeat = {repmat({nRepeat}, [n, 1])};
+else
+    nRepeat = mat2cell(reshape(nRepeat, [length(nRepeat), 1]), ones(n, 1));
+end
+
+paraNames = [{'pID'}; ...
+             {'node0Hint'}; ...
+             {'nodeHint'}; ...
+             {'apType'}; ...
+             {'protocol'}; ...
+             {'code'}; ...
+             {'ISI'}; ...
+             {'nRepeat'}; ...
+             {'cueLag'}; ...
+             paraNames];
+paraVals = [{repmat({pID},       [n, 1])}; ...
+            {repmat({node0Hint}, [n, 1])}; ...
+            {repmat({nodeHint},  [n, 1])}; ...
+            {repmat({apType},    [n, 1])}; ...
+            {repmat({protocol},  [n, 1])}; ...
+            {mat2cell((4:3 + n)', ones(n, 1))}; ...
+            {repmat({ISI},       [n, 1])}; ...
+            nRepeat;
+            cueLag;
+            paraVals];
+
+params = reshape([paraNames, paraVals]', [], 1);
+params = struct2table(struct(params{:}));
+
+[pathstr, name, ext] = fileparts(rulesPath);
+if exist(rulesPath, "file")
+    tb0 = readtable(rulesPath);
+
+    % Reorder by pID
+    [~, idx] = sortrows(tb0.pID, 1, "ascend");
+    tb0 = tb0(idx, :);
+
+    % Override the old
+    tb0(tb0.pID == pID, :) = [];
+
+    insertIdx = find(tb0.pID > pID, 1) - 1;
+    if isempty(insertIdx)
+        insertIdx = size(tb0, 1);
     end
 
-    paraNames = [{'pID'}; ...
-                 {'node0Hint'}; ...
-                 {'nodeHint'}; ...
-                 {'apType'}; ...
-                 {'protocol'}; ...
-                 {'code'}; ...
-                 {'ISI'}; ...
-                 {'nRepeat'}; ...
-                 {'cueLag'}; ...
-                 paraNames];
-    paraVals = [{repmat({pID},       [n, 1])}; ...
-                {repmat({node0Hint}, [n, 1])}; ...
-                {repmat({nodeHint},  [n, 1])}; ...
-                {repmat({apType},    [n, 1])}; ...
-                {repmat({protocol},  [n, 1])}; ...
-                {mat2cell((4:3 + n)', ones(n, 1))}; ...
-                {repmat({ISI},       [n, 1])}; ...
-                nRepeat;
-                cueLag;
-                paraVals];
+    try
+        writetable([tb0(1:insertIdx, :); params; tb0(insertIdx + 1:end, :)], rulesPath);
+    catch ME
+        Msgbox(ME.message, "Error", "Alignment", "top-center");
 
-    params = reshape([paraNames, paraVals]', [], 1);
-    params = struct2table(struct(params{:}));
-
-    [pathstr, name, ext] = fileparts(rulesPath);
-    if exist(rulesPath, "file")
-        tb0 = readtable(rulesPath);
-
-        try
-            writetable([tb0; params], rulesPath);
-        catch ME
-            Msgbox(ME.message, "Error");
-
-            % Merge to former rules file (merge common parameters only)
-            writetable([tb0(:, 1:9); params(:, 1:9)], rulesPath);
-            % Create new rules file for a specific protocol
-            writetable(params, fullfile(pathstr, strcat(name, "_pID-", num2str(pID), ext)));
-        end
-
-    else
-        % Create new rules file
-        writetable(params, rulesPath);
+        % Merge to former rules file (merge common parameters only)
+        writetable([tb0(:, 1:9); params(:, 1:9)], rulesPath);
+        % Create new rules file for a specific protocol
+        writetable(params, fullfile(pathstr, strcat(name, "_pID-", num2str(pID), ext)));
     end
-   
-    return;
+
+else
+    % Create new rules file
+    writetable(params, rulesPath);
+end
+
+return;
 end
