@@ -66,11 +66,17 @@ function trialsData = activeFcn(app)
     nMiss = 0;
     
     for index = 1:length(orders)
-        PsychPortAudio('FillBuffer', pahandle, repmat(sounds{orders(index)}, 2, 1));
-    
+
         if index == 1
+            % To prevent burst sound caused by sudden change from zero
+            PsychPortAudio('FillBuffer', pahandle, [zeros(1, 10); zeros(1, 10)]);
             PsychPortAudio('Start', pahandle, 1, 0, 1);
+            st = PsychPortAudio('Stop', pahandle, 1, 1);
+
+            PsychPortAudio('FillBuffer', pahandle, repmat(sounds{orders(index)}, 2, 1));
+            PsychPortAudio('Start', pahandle, 1, st + 0.1, 1);
         else
+            PsychPortAudio('FillBuffer', pahandle, repmat(sounds{orders(index)}, 2, 1));
             PsychPortAudio('Start', pahandle, 1, startTime{index - 1} + ISI, 1);
         end
 
@@ -116,11 +122,12 @@ function trialsData = activeFcn(app)
         'key', key);
     trialsData(cellfun(@isempty, startTime)) = [];
     protocol = app.protocol{app.pIDIndex};
+    rules = readtable(app.rulesPath);
     
     if ~exist(fullfile(dataPath, [num2str(pID), '.mat']), 'file')
-        save(fullfile(dataPath, [num2str(pID), '.mat']), "trialsData", "protocol");
+        save(fullfile(dataPath, [num2str(pID), '.mat']), "trialsData", "protocol", "rules", "pID");
     else
-        save(fullfile(dataPath, [num2str(pID), '_redo.mat']), "trialsData", "protocol");
+        save(fullfile(dataPath, [num2str(pID), '_redo.mat']), "trialsData", "protocol", "rules", "pID");
     end
     
     WaitSecs(5);

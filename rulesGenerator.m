@@ -26,15 +26,10 @@ function rulesGenerator(soundDir, ... % dir path of sound files
 %                    40, ...
 %                    0.8);
 
-narginchk(3, 10);
+narginchk(8, 10);
 
-if nargin < 4  || isempty(node0Hint), node0Hint = nan; end
-if nargin < 5  || isempty(nodeHint ), nodeHint  = nan; end
-if nargin < 6  || isempty(apType   ), apType    = nan; end
-if nargin < 7  || isempty(protocol ), protocol  = nan; end
-if nargin < 8  || isempty(ISI      ), ISI       = nan; end
-if nargin < 9  || isempty(nRepeat  ), nRepeat   = nan; end
-if nargin < 10 || isempty(cueLag   ), cueLag    = nan; end
+if nargin < 9  || isempty(nRepeat), nRepeat = nan; end
+if nargin < 10 || isempty(cueLag ), cueLag  = nan; end
 
 files = dir(soundDir);
 [~, soundNames] = cellfun(@(x) fileparts(x), {files.name}, "UniformOutput", false);
@@ -104,7 +99,7 @@ if exist(rulesPath, "file")
     try
         writetable([tb0(1:insertIdx, :); params; tb0(insertIdx + 1:end, :)], rulesPath);
     catch ME
-        Msgbox(ME.message, "Error", "Alignment", "top-center");
+        Msgbox({ME.message; ''; '已另存为尾缀为_pID-x.xlsx文件'}, "Error", "Alignment", "top-center");
 
         % Merge to former rules file (merge common parameters only)
         writetable([tb0(:, 1:9); params(:, 1:9)], rulesPath);
