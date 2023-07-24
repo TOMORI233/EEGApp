@@ -62,6 +62,7 @@ function passiveFcn(app)
 
             PsychPortAudio('FillBuffer', pahandle, repmat(sounds{orders(index)}, 2, 1));
             PsychPortAudio('Start', pahandle, 1, st + 0.1, 1);
+            t0 = now;
         else
             PsychPortAudio('FillBuffer', pahandle, repmat(sounds{orders(index)}, 2, 1));
             PsychPortAudio('Start', pahandle, 1, startTime{index - 1} + ISI, 1);
@@ -84,6 +85,13 @@ function passiveFcn(app)
     end
     
     PsychPortAudio('Close');
+
+    % Time correction
+    tShift = t0 * 3600 * 24 - startTime{1};
+    startTime = startTime + tShift;
+    estStopTime = estStopTime + tShift;
+    pressTime = pressTime + tShift;
+
     trialsData = struct('onset', startTime, ...
                         'offset', estStopTime, ...
                         'soundName', soundName, ...

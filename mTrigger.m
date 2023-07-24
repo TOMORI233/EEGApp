@@ -1,5 +1,5 @@
 function mTrigger(triggerType, ioObj, code, address)
-    disp(['Trigger: ', num2str(code)]);
+    disp(['Trigger: ', num2str(code), ' (', datestr(now, "yyyy-mm-dd HH:MM:SS.FFF"), ')']);
 
     if strcmpi(triggerType, 'LTP')
         % For LTP (curry 8)

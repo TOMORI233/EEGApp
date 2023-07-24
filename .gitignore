@@ -3,7 +3,6 @@
 
 #ignore sounds folder
 sounds/
-!sounds/hint/
 
 #ignore slprj folder
 **/slprj/
