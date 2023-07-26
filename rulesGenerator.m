@@ -4,13 +4,17 @@ function rulesGenerator(soundDir, ... % dir path of sound files
                         node0Hint, nodeHint, ... % shown in UI phase selection nodetree
                         apType, ... % "active" or "passive"
                         protocol, ... % protocol name, eg "TB passive1", "Offset active2"
-                        ISI, ... % positive scalar
-                        nRepeat, ... % scalar (for all) or vector (for single)
-                        cueLag) % for active protocols, the time lag from the offset of prior sound to the cue for choice
+                        ISI, ... % inter-stimuli interval in sec, positive scalar
+                        varargin)
 % Automatically generate rules.xlsx by sound file names.
 %
 % If file of rulesPath exists, its content will be reordered by pID (ascend) first 
 % and the content of the same pID will be overrided.
+% 
+% nRepeat: scalar (for all) or vector (for single)
+% cueLag: for active protocols, the time lag from the offset of prior sound to the cue for choice
+% joinOpt: if set "on", will add new columns to the original table and leave blank if new params of 
+%          the former ones do not exist.
 %
 % Recommended file name format: ord_para1Name-para1Val_para2Name-para2Val_...
 %
@@ -26,10 +30,15 @@ function rulesGenerator(soundDir, ... % dir path of sound files
 %                    40, ...
 %                    0.8);
 
-narginchk(8, 10);
+mIp = inputParser;
+mIp.addOptional("nRepeat", nan, @(x) isnumeric(x) && isscalar(x));
+mIp.addOptional("cueLag", nan, @(x) isnumeric(x) && isscalar(x));
+mIp.addParameter("joinOpt", "off", @(x) any(validatestring(x, {'on', 'off'})));
+mIp.parse(varargin{:});
 
-if nargin < 9  || isempty(nRepeat), nRepeat = nan; end
-if nargin < 10 || isempty(cueLag ), cueLag  = nan; end
+nRepeat = mIp.Results.nRepeat;
+cueLag = mIp.Results.cueLag;
+joinOpt = mIp.Results.joinOpt;
 
 files = dir(soundDir);
 [~, soundNames] = cellfun(@(x) fileparts(x), {files.name}, "UniformOutput", false);
@@ -77,8 +86,8 @@ paraVals = [{repmat({pID},       [n, 1])}; ...
             cueLag;
             paraVals];
 
-params = reshape([paraNames, paraVals]', [], 1);
-params = struct2table(struct(params{:}));
+tb2Insert = reshape([paraNames, paraVals]', [], 1);
+tb2Insert = struct2table(struct(tb2Insert{:}));
 
 [pathstr, name, ext] = fileparts(rulesPath);
 if exist(rulesPath, "file")
@@ -97,19 +106,40 @@ if exist(rulesPath, "file")
     end
 
     try
-        writetable([tb0(1:insertIdx, :); params; tb0(insertIdx + 1:end, :)], rulesPath);
+        writetable([tb0(1:insertIdx, :); tb2Insert; tb0(insertIdx + 1:end, :)], rulesPath, "WriteMode", "replacefile");
     catch ME
-        Msgbox({ME.message; ''; '已另存为尾缀为_pID-x.xlsx文件'}, "Error", "Alignment", "top-center");
 
-        % Merge to former rules file (merge common parameters only)
-        writetable([tb0(:, 1:9); params(:, 1:9)], rulesPath);
-        % Create new rules file for a specific protocol
-        writetable(params, fullfile(pathstr, strcat(name, "_pID-", num2str(pID), ext)));
+        if strcmpi(joinOpt, "off")
+            Msgbox({ME.message; ''; '已另存为尾缀为_pID-x.xlsx文件'}, "Warning", "Alignment", "top-center");
+
+            % Merge to former rules file (merge common parameters only)
+            writetable([tb0(:, 1:9); tb2Insert(:, 1:9)], rulesPath);
+            % Create new rules file for a specific protocol
+            writetable(tb2Insert, fullfile(pathstr, strcat(name, "_pID-", num2str(pID), ext)));
+        else
+            tbNew = [tb0(1:insertIdx, 1:9); tb2Insert(:, 1:9); tb0(insertIdx + 1:end, 1:9)];
+            paraNames = unqiue([paraNames; tb0.Properties.VariableNames(10:end)'], "stable");
+
+            for pIndex = 10:length(paraNames)
+                
+                if ~contains(paraNames{pIndex}, tb2Insert.Properties.VariableNames)
+                    tbNew.(paraNames{pIndex}) = [tb0(1:insertIdx, :).(paraNames{pIndex}); nan(size(tb2Insert, 1), 1); tb0(insertIdx + 1:end, :).(paraNames{pIndex})];
+                elseif contains(paraNames{pIndex}, tb0.Properties.VariableNames)
+                    tbNew.(paraNames{pIndex}) = [tb0(1:insertIdx, :).(paraNames{pIndex}); tb2Insert.(paraNames{pIndex}); tb0(insertIdx + 1:end, :).(paraNames{pIndex})];
+                else
+                    tbNew.(paraNames{pIndex}) = [nan(insertIdx, 1); tb2Insert.(paraNames{pIndex}); nan(size(tb0, 1) - insertIdx, 1)];
+                end
+
+            end
+
+            writetable(tbNew, rulesPath, "WriteMode", "replacefile");
+        end
+
     end
 
 else
     % Create new rules file
-    writetable(params, rulesPath);
+    writetable(tb2Insert, rulesPath);
 end
 
 return;

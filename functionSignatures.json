@@ -25,7 +25,8 @@
             {"name": "protocol", "kind": "required", "type":  [["@(x) isempty(x) || isnan(x)"], ["string"], ["char"]]},
             {"name": "ISI", "kind": "required", "type":  [["@(x) isempty(x) || isnan(x)"], ["scalar", "positive"]]},
             {"name": "nRepeat", "kind": "ordered", "type":  [["@(x) isempty(x) || isnan(x)"], ["integer", "positive", "vector"]]},
-            {"name": "cueLag", "kind": "ordered", "type":  [["@(x) isempty(x) || isnan(x)"], ["positive", "scalar"]]}
+            {"name": "cueLag", "kind": "ordered", "type":  [["@(x) isempty(x) || isnan(x)"], ["positive", "scalar"]]},
+            {"name": "joinOpt", "kind": "namevalue", "type":  ["choices = {'on', 'off'}"]}
         ]
     }
 }
