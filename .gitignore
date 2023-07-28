@@ -3,7 +3,7 @@
 
 #ignore sounds folder
 sounds/
-!sounds/!hint/*
+!*.mp3
 
 #ignore slprj folder
 **/slprj/
