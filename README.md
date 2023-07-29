@@ -87,11 +87,11 @@ rulesGenerator("sounds\2", "rules.xlsx", 2, "测试父节点", "测试子节点1
 2. 将刺激文件放进对应`sounds\{pID}`数字命名的文件夹下
 3. 命令行输入`mainApp`打开主界面
 4. 编辑被试信息：带*号为必填项
-5. 编辑刺激参数：请反复确认默认播放设备的采样率以及触发方式，默认为None即无触发
+5. 编辑刺激参数：请反复确认默认播放设备的采样率以及触发方式，默认为None即无触发，可选触发方式包括：LTP、COM和TriggerBox
 6. 在nodetree中勾选需要完成的protocol
-6. 开始记录，同时自动将参数保存在数据存储路径和本项目根目录下的`config.mat`中
-6. 完成一个protocol的记录，自动保存数据为`[pID].mat`，手动/自动进入下一阶段
-6. 自动/手动（强制）结束记录
+7. 开始记录，同时自动将参数保存在数据存储路径和本项目根目录下的`config.mat`中
+8. 完成一个protocol的记录，自动保存数据为`[pID].mat`，手动/自动进入下一阶段。保存的内容包括：trial数据（onset, offset, soundName, push, key，时间为系统时间，可用`datestr(t, "yyyy-mm-dd HH:MM:SS.FFF")`转为时间戳，单位：sec）、pID、rules、protocol名。同时在该目录下也会保存一个`config.mat`
+9. 自动/手动（强制）结束记录
 
 #### 5. 注意事项：
 
@@ -116,17 +116,24 @@ rulesGenerator("sounds\2", "rules.xlsx", 2, "测试父节点", "测试子节点1
 
 请将每次更新内容**置顶**写在这里，标注日期、修改者和兼容性（Incompatible/Compatible），对每条修改请标注修改类型（Add/Modify/Delete/Debug）。若为Incompatible，请给出修改方案。
 
+- 2023/07/29 by XHX - Compatible
+
+  | Type        | Target             | Content                                                      |
+  | ----------- | ------------------ | ------------------------------------------------------------ |
+  | Modify      | 项目结构           | 将`LTP`和`TriggerBox`的相关模块放在了根目录下的`Trigger\`文件夹下 |
+  | Add & Debug | `rulesGenerator.m` | 增加`name-value`输入参数`forceOpt`，当该选项被设置为`"on"`时，在尝试拼接失败后，强制将新增protocol的参数拼接在原始`rules.xlsx`中，之前存在的参数正常拼接，不存在的参数则在原本的行位置留空。选项默认`"off"`，即首先尝试拼接，如果有冲突则新建`rules_pID-[pID].xlsx`对新的protocol参数单独保存。 |
+
 - 2023/07/18 by XHX - Compatible
 
-  | Type   | Content                                                      |
-  | :----- | :----------------------------------------------------------- |
-  | Modify | 为了使第一个声音放出时不会出现burst，会先播放10个sample的0，并添加了100 ms的延迟再放实际声音，不影响实际给声音（参考`playAudio.m`） |
-  | Modify | 调整pID上限：~~100~~→10000                                   |
-  | Add    | 在完成每个protocol后，保存的`*.mat`内容增加了`pID`和`rules`，方便在处理时读取 |
+  | Type   | Target                        | Content                                                      |
+  | :----- | ----------------------------- | :----------------------------------------------------------- |
+  | Modify | `activeFcn.m`, `passiveFcn.m` | 为了使第一个声音放出时不会出现burst，会先播放10个sample的0，并添加了100 ms的延迟再放实际声音，不影响实际给声音（参考`playAudio.m`） |
+  | Modify | `mainApp.mlapp`               | 调整pID上限：~~100~~→10000                                   |
+  | Add    | `activeFcn.m`, `passiveFcn.m` | 在完成每个protocol后，保存的`*.mat`内容增加了`pID`和`rules`，方便在处理时读取 |
 
 - 2023/07/03 by XHX - Compatible
 
-  | Type   | Content                                                      |
-  | ------ | ------------------------------------------------------------ |
-  | Delete | 删除了本项目根目录下的`playAudio.m`，请使用`MATLABUtils\toolbox API\PTB\playAudio.m`，有特殊更改请创建自己名字的`+xxx`工具包 |
-  | Add    | 在`paramsSettingApp.mlapp`中添加了对`COM`触发的支持          |
+  | Type   | Target                   | Content                                                      |
+  | ------ | ------------------------ | ------------------------------------------------------------ |
+  | Delete | ~~`playAudio.m`~~        | 删除了本项目根目录下的`playAudio.m`，请使用`MATLABUtils\toolbox API\PTB\playAudio.m`，有特殊更改请创建自己名字的`+xxx`工具包 |
+  | Add    | `paramsSettingApp.mlapp` | 添加了对`COM`触发的支持                                      |

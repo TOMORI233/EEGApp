@@ -13,8 +13,8 @@ function rulesGenerator(soundDir, ... % dir path of sound files
 % 
 % nRepeat: scalar (for all) or vector (for single)
 % cueLag: for active protocols, the time lag from the offset of prior sound to the cue for choice
-% joinOpt: if set "on", will add new columns to the original table and leave blank if new params of 
-%          the former ones do not exist.
+% forceOpt: if set "on", will add new columns to the original table and leave blank if new params of 
+%           the former ones do not exist.
 %
 % Recommended file name format: ord_para1Name-para1Val_para2Name-para2Val_...
 %
@@ -33,12 +33,12 @@ function rulesGenerator(soundDir, ... % dir path of sound files
 mIp = inputParser;
 mIp.addOptional("nRepeat", nan, @(x) isnumeric(x) && isscalar(x));
 mIp.addOptional("cueLag", nan, @(x) isnumeric(x) && isscalar(x));
-mIp.addParameter("joinOpt", "off", @(x) any(validatestring(x, {'on', 'off'})));
+mIp.addParameter("forceOpt", "off", @(x) any(validatestring(x, {'on', 'off'})));
 mIp.parse(varargin{:});
 
 nRepeat = mIp.Results.nRepeat;
 cueLag = mIp.Results.cueLag;
-joinOpt = mIp.Results.joinOpt;
+forceOpt = mIp.Results.forceOpt;
 
 files = dir(soundDir);
 [~, soundNames] = cellfun(@(x) fileparts(x), {files.name}, "UniformOutput", false);
@@ -109,7 +109,7 @@ if exist(rulesPath, "file")
         writetable([tb0(1:insertIdx, :); tb2Insert; tb0(insertIdx + 1:end, :)], rulesPath, "WriteMode", "replacefile");
     catch ME
 
-        if strcmpi(joinOpt, "off")
+        if strcmpi(forceOpt, "off")
             Msgbox({ME.message; ''; '已另存为尾缀为_pID-x.xlsx文件'}, "Warning", "Alignment", "top-center");
 
             % Merge to former rules file (merge common parameters only)
