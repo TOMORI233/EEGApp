@@ -13,6 +13,7 @@ function rulesGenerator(soundDir, ... % dir path of sound files
 % 
 % nRepeat: scalar (for all) or vector (for single)
 % cueLag: for active protocols, the time lag from the offset of prior sound to the cue for choice
+% processFcn: function_handle, for behavior real-time monitoring
 % forceOpt: if set "on", will add new columns to the original table and leave blank if new params of 
 %           the former ones do not exist.
 %
@@ -36,13 +37,15 @@ function rulesGenerator(soundDir, ... % dir path of sound files
 %                nRepeat);
 
 mIp = inputParser;
-mIp.addOptional("nRepeat", nan, @(x) isnumeric(x) && isscalar(x));
-mIp.addOptional("cueLag", nan, @(x) isnumeric(x) && isscalar(x));
+mIp.addOptional("nRepeat", nan, @(x) isnumeric(x));
+mIp.addOptional("cueLag", nan, @(x) isnumeric(x));
+mIp.addOptional("processFcn", [], @(x) isscalar(x) && isa(x, "function_handle"));
 mIp.addParameter("forceOpt", "off", @(x) any(validatestring(x, {'on', 'off'})));
 mIp.parse(varargin{:});
 
 nRepeat = mIp.Results.nRepeat;
 cueLag = mIp.Results.cueLag;
+processFcn = mIp.Results.processFcn;
 forceOpt = mIp.Results.forceOpt;
 
 files = dir(soundDir);
@@ -67,10 +70,26 @@ paraVals = cellfun(@(x) mat2cell(x, ones(length(x), 1)), paraVals, "UniformOutpu
 
 n = length(soundNames);
 
-if isscalar(nRepeat)
+if isscalar(nRepeat) && isnumeric(nRepeat)
     nRepeat = {repmat({nRepeat}, [n, 1])};
-else
+elseif isempty(nRepeat)
+    nRepeat = {repmat({nan}, [n, 1])};
+else % numeric vector
     nRepeat = mat2cell(reshape(nRepeat, [length(nRepeat), 1]), ones(n, 1));
+end
+
+if isscalar(cueLag) && isnumeric(cueLag)
+    cueLag = {repmat({cueLag}, [n, 1])};
+elseif isempty(cueLag)
+    cueLag = {repmat({nan}, [n, 1])};
+else % numeric vector
+    cueLag = mat2cell(reshape(cueLag, [length(cueLag), 1]), ones(n, 1));
+end
+
+if isempty(processFcn)
+    processFcn = {repmat({""}, [n, 1])};
+else
+    processFcn = {repmat({string(func2str(processFcn))}, [n, 1])};
 end
 
 paraNames = [{'pID'}; ...
@@ -82,16 +101,18 @@ paraNames = [{'pID'}; ...
              {'ISI'}; ...
              {'nRepeat'}; ...
              {'cueLag'}; ...
+             {'processFcn'}; ...
              paraNames];
-paraVals = [{repmat({pID},       [n, 1])}; ...
-            {repmat({node0Hint}, [n, 1])}; ...
-            {repmat({nodeHint},  [n, 1])}; ...
-            {repmat({apType},    [n, 1])}; ...
-            {repmat({protocol},  [n, 1])}; ...
+paraVals = [{repmat({pID},        [n, 1])}; ...
+            {repmat({node0Hint},  [n, 1])}; ...
+            {repmat({nodeHint},   [n, 1])}; ...
+            {repmat({apType},     [n, 1])}; ...
+            {repmat({protocol},   [n, 1])}; ...
             {mat2cell((4:3 + n)', ones(n, 1))}; ...
-            {repmat({ISI},       [n, 1])}; ...
+            {repmat({ISI},        [n, 1])}; ...
             nRepeat;
             cueLag;
+            processFcn;
             paraVals];
 
 tb2Insert = reshape([paraNames, paraVals]', [], 1);
@@ -121,11 +142,11 @@ if exist(rulesPath, "file")
             Msgbox({ME.message; ''; '已另存为尾缀为_pID-x.xlsx文件'}, "Warning", "Alignment", "top-center");
 
             % Merge to former rules file (merge common parameters only)
-            writetable([tb0(:, 1:9); tb2Insert(:, 1:9)], rulesPath);
+            writetable([tb0(:, 1:10); tb2Insert(:, 1:10)], rulesPath);
             % Create new rules file for a specific protocol
             writetable(tb2Insert, fullfile(pathstr, strcat(name, "_pID-", num2str(pID), ext)));
         else
-            tbNew = [tb0(1:insertIdx, 1:9); tb2Insert(:, 1:9); tb0(insertIdx + 1:end, 1:9)];
+            tbNew = [tb0(1:insertIdx, 1:10); tb2Insert(:, 1:10); tb0(insertIdx + 1:end, 1:10)];
             paraNames = unqiue([paraNames; tb0.Properties.VariableNames(10:end)'], "stable");
 
             for pIndex = 10:length(paraNames)

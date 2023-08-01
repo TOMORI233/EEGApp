@@ -59,6 +59,21 @@ function trialsData = activeFcn(app)
     estStopTime = cell(length(orders), 1);
     soundName = cell(length(orders), 1);
     codes = app.codes(app.pIDsRules == pID);
+
+    rules = readtable(app.rulesPath);
+    rules = rules(rules.pID == pID, :);
+
+    if isa(app.behavApp, "behaviorPlotApp") && isvalid(app.behavApp)
+        % Call behaviorPlotApp if processFcn is specified
+        if ~isempty(rules.processFcn)
+            app.behavApp.processFcn = str2func(rules(1, :).processFcn{1});
+            drawnow;
+        else
+            disp('WARNING: processFcn not specified!');
+        end
+    else
+        disp('INFO: Real-time monitor is not created or is deleted.');
+    end
     
     mTrigger(triggerType, ioObj, 1, address);
     WaitSecs(2);
@@ -104,7 +119,21 @@ function trialsData = activeFcn(app)
     
         soundName{index} = soundNames{orders(index)};
         app.StateLabel.Text = strcat(app.protocolList.Text{app.protocolList.pID == app.pIDList(app.pIDIndex)}, '(Total: ', num2str(index), '/', num2str(length(orders)), ', Miss: ', num2str(nMiss), ')');
-    
+        
+        % Update behavior plot
+        if isa(app.behavApp, "behaviorPlotApp") && isvalid(app.behavApp) && ~isempty(rules.processFcn)
+            try % In case that error occurs in your processFcn
+                app.behavApp.processFcn = str2func(rules(1, :).processFcn{1});
+                app.behavApp.processFcn(app.behavApp, ...
+                                        rules, ...
+                                        startTime, ...
+                                        estStopTime, ...
+                                        num2cell(codes(orders)), ...
+                                        pressTime, ...
+                                        key);
+            end
+        end
+
         % For termination
         pause(0.1);
     
@@ -123,14 +152,13 @@ function trialsData = activeFcn(app)
     pressTime = pressTime + tShift;
 
     trialsData = struct('onset', startTime, ...
-        'offset', estStopTime, ...
-        'soundName', soundName, ...
-        'code', num2cell(codes(orders)), ...
-        'push', pressTime, ...
-        'key', key);
+                        'offset', estStopTime, ...
+                        'soundName', soundName, ...
+                        'code', num2cell(codes(orders)), ...
+                        'push', pressTime, ...
+                        'key', key);
     trialsData(cellfun(@isempty, startTime)) = [];
     protocol = app.protocol{app.pIDIndex};
-    rules = readtable(app.rulesPath);
     
     if ~exist(fullfile(dataPath, [num2str(pID), '.mat']), 'file')
         save(fullfile(dataPath, [num2str(pID), '.mat']), "trialsData", "protocol", "rules", "pID");

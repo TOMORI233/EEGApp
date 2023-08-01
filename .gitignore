@@ -5,6 +5,9 @@
 sounds/*
 !sounds/hint/
 
+#ignore Data folder
+Data/
+
 #ignore slprj folder
 **/slprj/
 /slprj/

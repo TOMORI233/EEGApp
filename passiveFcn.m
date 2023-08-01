@@ -49,6 +49,9 @@ function passiveFcn(app)
     soundName = cell(length(orders), 1);
     codes = app.codes(app.pIDsRules == pID);
 
+    rules = readtable(app.rulesPath);
+    rules = rules(rules.pID == pID, :);
+
     mTrigger(triggerType, ioObj, 1, address);
     WaitSecs(2);
     
@@ -100,7 +103,6 @@ function passiveFcn(app)
                         'key', key);
     trialsData(cellfun(@isempty, startTime)) = [];
     protocol = app.protocol{app.pIDIndex};
-    rules = readtable(app.rulesPath);
     
     if ~exist(fullfile(dataPath, [num2str(pID), '.mat']), 'file')
         save(fullfile(dataPath, [num2str(pID), '.mat']), "trialsData", "protocol", "rules", "pID");

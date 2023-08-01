@@ -28,11 +28,11 @@ Git项目地址`git@github.com:TOMORI233/EEGApp.git`
 
 #### 2. LTP并口设置（Neuroscan）
 
-1. 运行`**\MATLAB LTP Config\InpOutBinaries_1501\Win32\InstallDriver.exe`
+1. 运行`MATLAB LTP Config\InpOutBinaries_1501\Win32\InstallDriver.exe`
 
-2. 将`MATLAB LTP Config`文件夹下的`inpoutx64.dll`和`inpoutx64.sys`文件复制或移动至`C:\Windows\System32\`目录下
+2. 将`MATLAB LTP Config\`文件夹下的`inpoutx64.dll`和`inpoutx64.sys`文件复制或移动至`C:\Windows\System32\`目录下
 
-3. 将`MATLAB LTP Config`下的`config_io.m`、`inp.m`、`outp.m`和`io64.mexw64`加入MATLAB的路径
+3. 将`MATLAB LTP Config\`下的`config_io.m`、`inp.m`、`outp.m`和`io64.mexw64`加入MATLAB的路径
 4. 在MATLAB中运行`config_io.m`成功则表示配置完成（失败请重启电脑）
 
 ```matlab
@@ -84,11 +84,12 @@ ISI = 5;
 rulesGenerator("sounds\2", "rules.xlsx", 2, "测试父节点", "测试子节点1", "passive", "Test Phase1", ISI);
 ```
 
-2. 将刺激文件放进对应`sounds\{pID}`数字命名的文件夹下
+2. 将刺激文件放进对应`sounds\{pID}\`数字命名的文件夹下
 3. 命令行输入`mainApp`打开主界面
 4. 编辑被试信息：带*号为必填项
 5. 编辑刺激参数：请反复确认默认播放设备的采样率以及触发方式，默认为None即无触发，可选触发方式包括：LTP、COM和TriggerBox
 6. 在nodetree中勾选需要完成的protocol
+6. 可选：在有行为的实验中打开实时行为查看窗口
 7. 开始记录，同时自动将参数保存在数据存储路径和本项目根目录下的`config.mat`中
 8. 完成一个protocol的记录，自动保存数据为`[pID].mat`，手动/自动进入下一阶段。保存的内容包括：trial数据（onset, offset, soundName, push, key，时间为系统时间，可用`datestr(t, "yyyy-mm-dd HH:MM:SS.FFF")`转为时间戳，单位：sec）、pID、rules、protocol名。同时在该目录下也会保存一个`config.mat`
 9. 自动/手动（强制）结束记录
@@ -101,9 +102,9 @@ rulesGenerator("sounds\2", "rules.xlsx", 2, "测试父节点", "测试子节点1
 
 3. pID应小于10000（父节点的NodeData为10000+i，其中i为父节点序号）。
 
-4. 建议把自己的protocol对应的rules建一个文件夹放在`rules\`路径下，如`rules\offset MSTI`
+4. 建议把自己的protocol对应的rules建一个文件夹放在`rules\`路径下，如`rules\offset MSTI\`
 
-5. 每个人分配100个可用pID，请在`sounds`文件夹下创建自己`pID`的声音文件夹，请勿越界使用。分配关系如下：
+5. 每个人分配100个可用pID，请在`sounds\`文件夹下创建自己`pID\`的声音文件夹，请勿越界使用。分配关系如下：
 
 | 主试 | 可用pID范围 |
 | :--: | :---------: |
@@ -112,9 +113,17 @@ rulesGenerator("sounds\2", "rules.xlsx", 2, "测试父节点", "测试子节点1
 | ZYY  |   300~399   |
 | SPR  |   400~499   |
 
+6. 在有行为的实验中，请保证ISI > sound duration + choiceWin + 0.5，否则在Miss时可能会出现到下一个trial的计时不准。
+
 #### 6. Update Log
 
 请将每次更新内容**置顶**写在这里，标注日期、修改者和兼容性（Incompatible/Compatible），对每条修改请标注修改类型（Add/Modify/Delete/Debug）。若为Incompatible，请给出修改方案。
+
+- 2023/08/01 by XHX - Compatible （重要更新）
+
+  | Type         | Target                                                       | Content                                                      |
+  | ------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
+  | Add & Modify | `behaviorPlotApp.mlapp`, `mainApp.mlapp`, `activeFcn.m`, `generalProcessFcn.m`, `rulesGenerator.m` | 增加实时查看行为结果的子App，可以在主界面中按`实时行为查看`按钮打开，需要在`rules.xlsx`中通过`processFcn`字段指定函数句柄以调用处理画图程序，行为处理程序可以统一使用`generalProcessFcn.m`，请将写好的处理程序放在根目录下的`processFcn\`目录下。在`rulesGenerator.m`中增加了固定规则字段`processFcn`，输入类型为函数句柄标量。 |
 
 - 2023/07/29 by XHX - Compatible
 
