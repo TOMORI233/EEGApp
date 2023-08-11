@@ -1,42 +1,43 @@
-function rulesGenerator(soundDir, ... % dir path of sound files
-                        rulesPath, ... % full path of rules.xlsx
-                        pID, ... % protocol ID, positive integer scalar
-                        node0Hint, nodeHint, ... % shown in UI phase selection nodetree
-                        apType, ... % "active" or "passive"
-                        protocol, ... % protocol name, eg "TB passive1", "Offset active2"
-                        ITI, ... % inter-trial interval in sec, positive scalar
+function rulesGenerator(soundDir, ...            % directory path of sound files
+                        rulesPath, ...           % full path of rules.xlsx
+                        pID, ...                 % protocol ID, positive integer scalar
+                        node0Hint, nodeHint, ... % texts shown in UI phase selection nodetree
+                        apType, ...              % task type, "active" or "passive"
+                        protocol, ...            % protocol name, eg "TB passive1", "Offset active2"
+                        ITI, ...                 % inter-trial interval in sec, positive scalar
                         varargin)
-% Automatically generate rules.xlsx by sound file names.
-%
-% If file of rulesPath exists, its content will be reordered by pID (ascend) first 
-% and the content of the same pID will be overrided.
-% 
-% nRepeat: scalar (for all) or vector (for single)
-% cueLag: for active protocols, the time lag from the offset of prior sound to the cue for choice
-% processFcn: function_handle, for behavior real-time monitoring
-%             Please do make sure ITI > soundDur + choiceWin + ~0.5 to avoid delay in playing sounds.
-% forceOpt: if set "on", will add new columns to the original table and leave blank if new params of 
-%           the former ones do not exist.
-%
-% Recommended file name format: ord_para1Name-para1Val_para2Name-para2Val_...
-% DO NOT put duplicated parameters in your wave file name (eg. protocol, ITI).
+% Description:
+%     Automatically generate rules.xlsx by sound file names.
 %
 % Notice:
-% Integer, decimal and special values (inf and nan) will be exported as number and others as string.
+%     - If file of rulesPath exists, its content will be reordered by pID (ascend) first and the content 
+%       of the same pID will be overrided.
+%     - Integer, decimal and special values (inf and nan) will be exported as number and others as string.
+%     - Recommended file name format: ord_para1Name-para1Val_para2Name-para2Val_...
+%     - DO NOT put duplicated parameters in your wave file name (eg. protocol, ITI).
+% 
+% Optional Input:
+%     nRepeat: scalar (for all) or vector (for single)
+%     cueLag: for active protocols, the time lag from the offset of prior sound to the cue for choice
+%     processFcn: function_handle, for behavior real-time monitoring
+%                 Please do make sure ITI > soundDur + choiceWin + ~0.5 to avoid delay in playing sounds.
+%     forceOpt: if set "on", will add new columns to the original table and leave blank if new params of 
+%           the former ones do not exist.
 %
 % Example:
-% pID = 101;
-% ITI = 3.5; % sec
-% nRepeat = 2;
-% rulesGenerator(fullfile("sounds", num2str(pID)), ...
-%                "rules\start-end effect\rules.xlsx", ...
-%                pID, ...
-%                "start-end效应部分", ...
-%                "预实验阶段-阈值", ...
-%                "active", ...
-%                "SE pre", ...
-%                ITI, ...
-%                nRepeat);
+%     pID = 101;
+%     ITI = 3.5; % sec
+%     nRepeat = 2;
+%     rulesGenerator(fullfile("sounds", num2str(pID)), ...
+%                    "rules\start-end effect\rules.xlsx", ...
+%                    pID, ...
+%                    "start-end效应部分", ...
+%                    "预实验阶段-阈值", ...
+%                    "active", ...
+%                    "SE pre", ...
+%                    ITI, ...
+%                    nRepeat, ...
+%                    "forceOpt", "on");
 
 mIp = inputParser;
 mIp.addOptional("nRepeat", nan, @(x) isnumeric(x));
