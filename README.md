@@ -80,8 +80,8 @@ end
 
 % 使用rulesGenerator.m根据文件名自动生成rules.xlsx
 % 将pID=2的rules拼接至原rules.xlsx表格下
-ISI = 5;
-rulesGenerator("sounds\2", "rules.xlsx", 2, "测试父节点", "测试子节点1", "passive", "Test Phase1", ISI);
+ITI = 5;
+rulesGenerator("sounds\2", "rules.xlsx", 2, "测试父节点", "测试子节点1", "passive", "Test Phase1", ITI);
 ```
 
 2. 将刺激文件放进对应`sounds\{pID}\`数字命名的文件夹下

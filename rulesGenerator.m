@@ -19,6 +19,7 @@ function rulesGenerator(soundDir, ... % dir path of sound files
 %           the former ones do not exist.
 %
 % Recommended file name format: ord_para1Name-para1Val_para2Name-para2Val_...
+% DO NOT put duplicated parameters in your wave file name (eg. protocol, ITI).
 %
 % Notice:
 % Integer, decimal and special values (inf and nan) will be exported as number and others as string.
