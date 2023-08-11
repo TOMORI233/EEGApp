@@ -117,7 +117,13 @@ rulesGenerator("sounds\2", "rules.xlsx", 2, "测试父节点", "测试子节点1
 
 #### 6. Update Log
 
-请将每次更新内容**置顶**写在这里，标注日期、修改者和兼容性（Incompatible/Compatible），对每条修改请标注修改类型（Add/Modify/Delete/Debug）。若为Incompatible，请给出修改方案。
+请将每次更新内容**置顶**写在这里，标注日期、修改者和兼容性（**Incompatible**/Compatible），对每条修改请标注修改类型（Add/Modify/Delete/Debug）。若为Incompatible，请给出修改方案。
+
+- 2023/08/11 by XHX - **Incompatible**
+
+  | Type           | Target             | Content                                          |
+  | -------------- | ------------------ | ------------------------------------------------ |
+  | Modify & Debug | `rulesGenerator.m` | 将`ISI`重命名为`ITI`，如果处理程序用到了请注意。 |
 
 - 2023/08/01 by XHX - Compatible （重要更新）
 
