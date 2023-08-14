@@ -17,8 +17,8 @@ function passiveFcn(app)
 
     sounds = cellfun(@(x) resampleData(reshape(x, [1, length(x)]), fsSound, fsDevice), sounds, 'UniformOutput', false);
     
-    % ISI
-    ISI = mode(ISIs(app.pIDsRules == pID));
+    % ITI
+    ITI = mode(ITIs(app.pIDsRules == pID));
     
     % nRepeat
     temp = app.nRepeat(app.pIDsRules == pID);
@@ -68,7 +68,7 @@ function passiveFcn(app)
             t0 = now;
         else
             PsychPortAudio('FillBuffer', pahandle, repmat(sounds{orders(index)}, 2, 1));
-            PsychPortAudio('Start', pahandle, 1, startTime{index - 1} + ISI, 1);
+            PsychPortAudio('Start', pahandle, 1, startTime{index - 1} + ITI, 1);
         end
         
         % Trigger for EEG recording

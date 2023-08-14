@@ -23,7 +23,7 @@ function seEffectThProcessFcn(app, rules, onset, offset, code, push, key)
     nTotal = length(trialAll);
     trialAll([trialAll.miss]) = [];
     
-    % plot behavior
+    % Plot behavior
     trialsControl = trialAll(isnan([trialAll.pos]));
     trialsMid = trialAll([trialAll.pos] == 50);
     trialsHead = trialAll([trialAll.pos] < 50);

@@ -4,7 +4,7 @@ Git项目地址`git@github.com:TOMORI233/EEGApp.git`
 
 #### 1. MATLAB PTB与App设置
 
-1. 安装**`MATLAB 2020b`**及以上版本，以及在附加功能中安装以下工具包
+1. 安装**`MATLAB 2020b`**及以上版本（**`MATLAB 2022a`**对部分`cell`类型的运算不兼容，可能会遇到意料之外的问题，不推荐），以及在附加功能中安装以下工具包：
 
 > Signal processing toolbox
 
@@ -75,16 +75,27 @@ io64(ioObj, address, 0);
 ord = arrayfun(@(x) strrep(x, ' ', '0'), num2str((1:250)'));
 for index = 1:length(nSounds)
     filename = [ord(index, :), '_param1-', num2str(param1Val), '_param2', num2str(param2Val), '_', otherParamsNameValue, '.wav'];
-    audiowrite(filename, y, fs);
+    audiowrite(filename, y{index}, fs);
 end
 
 % 使用rulesGenerator.m根据文件名自动生成rules.xlsx
-% 将pID=2的rules拼接至原rules.xlsx表格下
+% 将pID=2的rules强制拼接至原rules.xlsx表格下（新增原来不存在的列）
+% 在rules.xlsx中可以单独编辑某个声音的重复次数和间隔
 ITI = 5;
-rulesGenerator("sounds\2", "rules.xlsx", 2, "测试父节点", "测试子节点1", "passive", "Test Phase1", ITI);
+pID = 2;
+nRepeat = 40;
+rulesGenerator(fullfile("sounds", num2str(pID)), ...
+			   "rules.xlsx", ...
+			   pID, ...
+			   "测试父节点", "测试子节点1", ...
+			   "passive", ...
+			   "Test Phase1", ...
+			   ITI, ...
+			   nRepeat, ...
+			   "forceOpt", "on");
 ```
 
-2. 将刺激文件放进对应`sounds\{pID}\`数字命名的文件夹下
+2. 将声音刺激文件放进对应`sounds\{pID}\`数字命名的文件夹下
 3. 命令行输入`mainApp`打开主界面
 4. 编辑被试信息：带*号为必填项
 5. 编辑刺激参数：请反复确认默认播放设备的采样率以及触发方式，默认为None即无触发，可选触发方式包括：LTP、COM和TriggerBox
@@ -119,7 +130,7 @@ rulesGenerator("sounds\2", "rules.xlsx", 2, "测试父节点", "测试子节点1
 
 请将每次更新内容**置顶**写在这里，标注日期、修改者和兼容性（**Incompatible**/Compatible），对每条修改请标注修改类型（Add/Modify/Delete/Debug）。若为Incompatible，请给出修改方案。
 
-- 2023/08/11 by XHX - **Incompatible**
+- 2023/08/14 by XHX - **Incompatible**
 
   | Type           | Target             | Content                                          |
   | -------------- | ------------------ | ------------------------------------------------ |
