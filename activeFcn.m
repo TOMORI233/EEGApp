@@ -158,12 +158,11 @@ function trialsData = activeFcn(app)
                         'push', pressTime, ...
                         'key', key);
     trialsData(cellfun(@isempty, startTime)) = [];
-    protocol = app.protocol{app.pIDIndex};
     
     if ~exist(fullfile(dataPath, [num2str(pID), '.mat']), 'file')
-        save(fullfile(dataPath, [num2str(pID), '.mat']), "trialsData", "protocol", "rules", "pID");
+        save(fullfile(dataPath, [num2str(pID), '.mat']), "trialsData", "rules");
     else
-        save(fullfile(dataPath, [num2str(pID), '_redo.mat']), "trialsData", "protocol", "rules", "pID");
+        save(fullfile(dataPath, [num2str(pID), '_redo.mat']), "trialsData", "rules");
     end
     
     WaitSecs(5);
