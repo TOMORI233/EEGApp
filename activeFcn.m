@@ -147,9 +147,9 @@ function trialsData = activeFcn(app)
 
     % Time correction
     tShift = t0 * 3600 * 24 - startTime{1};
-    startTime = startTime + tShift;
-    estStopTime = estStopTime + tShift;
-    pressTime = pressTime + tShift;
+    startTime = cellfun(@(x) x + tShift, startTime, "UniformOutput", false);
+    estStopTime = cellfun(@(x) x + tShift, estStopTime, "UniformOutput", false);
+    pressTime = cellfun(@(x) x + tShift, pressTime, "UniformOutput", false);
 
     trialsData = struct('onset', startTime, ...
                         'offset', estStopTime, ...
