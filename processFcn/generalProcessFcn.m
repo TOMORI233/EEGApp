@@ -14,6 +14,10 @@ function trialAll = generalProcessFcn(trialsData, rules, controlIdx)
         end
     
         trialAll(tIndex).key = trialsData(tIndex).key;
+
+        if isempty(trialAll(tIndex).key)
+            continue;
+        end
     
         if trialsData(tIndex).key == 0
             trialAll(tIndex).correct = false;
