@@ -1,4 +1,9 @@
 function trialAll = generalProcessFcn(trialsData, rules, controlIdx)
+    narginchk(2, 3);
+
+    if nargin < 3
+        controlIdx = [];
+    end
 
     if isempty(trialsData)
         trialAll = [];
@@ -15,7 +20,7 @@ function trialAll = generalProcessFcn(trialsData, rules, controlIdx)
     
         trialAll(tIndex).key = trialsData(tIndex).key;
 
-        if isempty(trialAll(tIndex).key)
+        if isempty(trialAll(tIndex).key) || isempty(controlIdx)
             continue;
         end
     

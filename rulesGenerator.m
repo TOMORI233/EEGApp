@@ -15,7 +15,9 @@ function rulesGenerator(soundDir, ...            % directory path of sound files
 %     - Integer, decimal and special values (inf and nan) will be exported as number and others as string.
 %     - Recommended file name format: ord_para1Name-para1Val_para2Name-para2Val_...
 %     - DO NOT put duplicated parameters in your wave file name (eg. protocol, ITI).
-% 
+%     - Make sure the names of your sound files in the folder contain the same parameters because only the
+%       parameters included in the first sound file name are used.
+%
 % Optional Input:
 %     nRepeat: scalar (for all) or vector (for single)
 %     cueLag: for active protocols, the time lag from the offset of prior sound to the cue for choice
