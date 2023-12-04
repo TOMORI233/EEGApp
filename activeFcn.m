@@ -79,6 +79,7 @@ function trialsData = activeFcn(app)
     WaitSecs(2);
     
     nMiss = 0;
+    orders = reshape(orders, [length(orders), 1]);
     
     for index = 1:length(orders)
 
@@ -151,7 +152,6 @@ function trialsData = activeFcn(app)
     estStopTime = cellfun(@(x) x + tShift, estStopTime, "UniformOutput", false);
     pressTime = cellfun(@(x) x + tShift, pressTime, "UniformOutput", false);
 
-    orders = reshape(orders, [length(orders), 1]);
     trialsData = struct('onset', startTime, ...
                         'offset', estStopTime, ...
                         'soundName', soundName, ...
