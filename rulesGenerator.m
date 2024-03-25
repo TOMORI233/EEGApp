@@ -15,8 +15,6 @@ function rulesGenerator(soundDir, ...            % directory path of sound files
 %     - Integer, decimal and special values (inf and nan) will be exported as number and others as string.
 %     - Recommended file name format: ord_para1Name-para1Val_para2Name-para2Val_...
 %     - DO NOT put duplicated parameters in your wave file name (eg. protocol, ITI).
-%     - Make sure the names of your sound files in the folder contain the same parameters because only the
-%       parameters included in the first sound file name are used.
 %
 % Optional Input:
 %     nRepeat: scalar (for all) or vector (for single)
@@ -60,19 +58,32 @@ end
 [~, soundNames] = cellfun(@(x) fileparts(x), {files.name}, "UniformOutput", false);
 soundNames = soundNames(3:end)';
 
-% Parse parameters from sound names
+%% Parse parameters from sound names
 temp = cellfun(@(x) split(x, '_'), soundNames, "UniformOutput", false);
 temp = cellfun(@(x) x(2:end), temp, "UniformOutput", false);
-temp = cellfun(@(x) cellfun(@(y) split(y, '-'), x, "UniformOutput", false), temp, "UniformOutput", false);
+paraList = cellfun(@(x) cellfun(@(y) split(y, '-'), x, "UniformOutput", false), temp, "UniformOutput", false);
 
-paraNames = cellfun(@(x) x{1}, temp{1}, "UniformOutput", false);
+paraStruct = cell(length(paraList), 1);
+for index = 1:length(paraList)
+    temp = [cellfun(@(x) x{1}, paraList{index}, "UniformOutput", false), ...
+            cellfun(@(x) x{2}, paraList{index}, "UniformOutput", false)]';
+    paraStruct{index} = struct(temp{:});
+end
+paraStruct = structcat(paraStruct{:});
+paraNames = fieldnames(paraStruct);
 
-temp = cellfun(@(x) cellfun(@(y) string(y{2}), x), temp, "UniformOutput", false);
-paraVals = num2cell([temp{:}]', 1)';
-numIdx = cellfun(@(x) all(arrayfun(@(y) all(isstrprop(strrep(y, '.', ''), "digit") | all(isstrprop(y, "digit")) | strcmpi(y, 'nan') | strcmpi(y, 'inf')), x)), paraVals);
-paraVals(numIdx) = cellfun(@(x) str2double(x), paraVals(numIdx), "UniformOutput", false);
-paraVals = cellfun(@(x) mat2cell(x, ones(length(x), 1)), paraVals, "UniformOutput", false);
+% convert numeric params to double
+for index = 1:length(paraNames)
+    temp = {paraStruct.(paraNames{index})}';
+    if all(cellfun(@(x) all(isstrprop(strrep(x, '.', ''), "digit") | all(isstrprop(x, "digit")) | strcmpi(x, 'nan') | strcmpi(x, 'inf')), ...
+                   temp(~cellfun(@isempty, temp))))
+        paraStruct = addfield(paraStruct, paraNames{index}, cellfun(@str2double, temp));
+    end
+end
 
+paraVals = cellfun(@(x) {paraStruct.(x)}', paraNames, "UniformOutput", false);
+
+%% Write to xlsx
 n = length(soundNames);
 
 if isscalar(nRepeat) && isnumeric(nRepeat)
@@ -148,19 +159,23 @@ if exist(rulesPath, "file")
 
             % Merge to former rules file (merge common parameters only)
             writetable([tb0(:, 1:10); tb2Insert(:, 1:10)], rulesPath);
+
             % Create new rules file for a specific protocol
-            writetable(tb2Insert, fullfile(pathstr, strcat(name, "_pID-", num2str(pID), ext)));
+            writetable(tb2Insert, fullfile(pathstr, strcat(name, "_pID-", num2str(pID), ext)), "WriteMode", "replacefile");
         else
             tbNew = [tb0(1:insertIdx, 1:10); tb2Insert(:, 1:10); tb0(insertIdx + 1:end, 1:10)];
             paraNames = unique([paraNames; tb0.Properties.VariableNames(10:end)'], "stable");
 
             for pIndex = 10:length(paraNames)
                 
-                if ~contains(paraNames{pIndex}, tb2Insert.Properties.VariableNames)
+                if ~any(strcmp(paraNames{pIndex}, tb2Insert.Properties.VariableNames))
+                    % Parameter exists in old rules but not in new rules
                     tbNew.(paraNames{pIndex}) = [tb0(1:insertIdx, :).(paraNames{pIndex}); nan(size(tb2Insert, 1), 1); tb0(insertIdx + 1:end, :).(paraNames{pIndex})];
-                elseif contains(paraNames{pIndex}, tb0.Properties.VariableNames)
+                elseif any(strcmp(paraNames{pIndex}, tb0.Properties.VariableNames))
+                    % Parameter exists in both old and new rules
                     tbNew.(paraNames{pIndex}) = [tb0(1:insertIdx, :).(paraNames{pIndex}); tb2Insert.(paraNames{pIndex}); tb0(insertIdx + 1:end, :).(paraNames{pIndex})];
                 else
+                    % Parameter exists in new rules but not in old rules
                     tbNew.(paraNames{pIndex}) = [nan(insertIdx, 1); tb2Insert.(paraNames{pIndex}); nan(size(tb0, 1) - insertIdx, 1)];
                 end
 
