@@ -9,6 +9,11 @@ function trialAll = generalProcessFcn(trialsData, rules, controlIdx)
         trialAll = [];
     end
 
+    if islogical(controlIdx)
+        temp = 1:size(rules, 1);
+        controlIdx = temp(controlIdx);
+    end
+
     for tIndex = 1:length(trialsData)
         trialAll(tIndex, 1).trialNum = tIndex;
     
