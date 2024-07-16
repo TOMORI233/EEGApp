@@ -24,6 +24,9 @@ function trialsData = activeFcn(app)
     
     % ITI
     ITI = mode(ITIs(app.pIDsRules == pID));
+
+    % ITI jitter
+    itiJitter = getOr(app.params, "itiJitter"); % sec
     
     % nRepeat & cueLag
     temp = app.nRepeat(app.pIDsRules == pID);
@@ -60,6 +63,12 @@ function trialsData = activeFcn(app)
     soundName = cell(length(orders), 1);
     codes = app.codes(app.pIDsRules == pID);
 
+    if ~isempty(itiJitter)
+        itiJitters = (rand(length(orders), 1) * 2 - 1) * itiJitter;
+    else
+        itiJitters = zeros(length(orders), 1);
+    end
+
     rules = readtable(app.rulesPath);
     rules = rules(rules.pID == pID, :);
 
@@ -79,7 +88,7 @@ function trialsData = activeFcn(app)
     WaitSecs(2);
     
     nMiss = 0;
-    orders = reshape(orders, [length(orders), 1]);
+    orders = orders(:);
     
     for index = 1:length(orders)
 
@@ -94,7 +103,7 @@ function trialsData = activeFcn(app)
             t0 = now;
         else
             PsychPortAudio('FillBuffer', pahandle, repmat(sounds{orders(index)}, 2, 1));
-            PsychPortAudio('Start', pahandle, 1, startTime{index - 1} + ITI, 1);
+            PsychPortAudio('Start', pahandle, 1, startTime{index - 1} + ITI + itiJitters(index), 1);
         end
 
         % Trigger for EEG recording

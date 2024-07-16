@@ -19,6 +19,9 @@ function passiveFcn(app)
     
     % ITI
     ITI = mode(ITIs(app.pIDsRules == pID));
+
+    % ITI jitter
+    itiJitter = getOr(app.params, "itiJitter"); % sec
     
     % nRepeat
     temp = app.nRepeat(app.pIDsRules == pID);
@@ -49,6 +52,12 @@ function passiveFcn(app)
     soundName = cell(length(orders), 1);
     codes = app.codes(app.pIDsRules == pID);
 
+    if ~isempty(itiJitter)
+        itiJitters = (rand(length(orders), 1) * 2 - 1) * itiJitter;
+    else
+        itiJitters = zeros(length(orders), 1);
+    end
+
     rules = readtable(app.rulesPath);
     rules = rules(rules.pID == pID, :);
 
@@ -70,7 +79,7 @@ function passiveFcn(app)
             t0 = now;
         else
             PsychPortAudio('FillBuffer', pahandle, repmat(sounds{orders(index)}, 2, 1));
-            PsychPortAudio('Start', pahandle, 1, startTime{index - 1} + ITI, 1);
+            PsychPortAudio('Start', pahandle, 1, startTime{index - 1} + ITI + itiJitters(index), 1);
         end
         
         % Trigger for EEG recording

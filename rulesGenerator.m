@@ -22,7 +22,7 @@ function rulesGenerator(soundDir, ...            % directory path of sound files
 %     processFcn: function_handle, for behavior real-time monitoring
 %                 Please do make sure ITI > soundDur + choiceWin + ~0.5 to avoid delay in playing sounds.
 %     forceOpt: if set "on", will add new columns to the original table and leave blank if new params of 
-%           the former ones do not exist.
+%               the former ones do not exist.
 %
 % Example:
 %     pID = 101;
