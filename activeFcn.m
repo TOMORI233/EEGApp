@@ -15,12 +15,12 @@ function trialsData = activeFcn(app)
     
     try
         [cueSound, fsCue] = audioread(fullfile(fileparts(mfilename("fullpath")), 'sounds\hint\cue.wav'));
-        cueSound = resampleData(reshape(cueSound, [1, length(cueSound)]), fsCue, fsDevice);
+        cueSound = resampleData(cueSound(:)', fsCue, fsDevice);
     end
     playAudio(hintSound(:, 1)', fsHint, fsDevice);
     KbGet(32, 20);
     
-    sounds = cellfun(@(x) resampleData(reshape(x, [1, length(x)]), fsSound, fsDevice), sounds, 'UniformOutput', false);
+    sounds = cellfun(@(x) resampleData(x(:)', fsSound, fsDevice), sounds, 'UniformOutput', false);
     
     % ITI
     ITI = mode(ITIs(app.pIDsRules == pID));
@@ -44,7 +44,7 @@ function trialsData = activeFcn(app)
     cueLags = [];
     for index = 1:length(temp)
         orders = [orders, repmat(index, 1, temp(index))];
-        cueLags = [cueLags, tempCue(index)*ones(1, temp(index))];
+        cueLags = [cueLags, tempCue(index) * ones(1, temp(index))];
     end
     idx = randperm(length(orders));
     orders = orders(idx);
@@ -103,7 +103,11 @@ function trialsData = activeFcn(app)
             t0 = now;
         else
             PsychPortAudio('FillBuffer', pahandle, repmat(sounds{orders(index)}, 2, 1));
-            PsychPortAudio('Start', pahandle, 1, startTime{index - 1} + ITI + itiJitters(index), 1);
+            if isinf(choiceWin)
+                PsychPortAudio('Start', pahandle, 1, pressTime{index - 1} + ITI + itiJitters(index) - length(sounds{orders(index)}) / fsDevice, 1);
+            else
+                PsychPortAudio('Start', pahandle, 1, startTime{index - 1} + ITI + itiJitters(index), 1);
+            end
         end
 
         % Trigger for EEG recording

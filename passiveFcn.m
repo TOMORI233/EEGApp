@@ -15,7 +15,7 @@ function passiveFcn(app)
     playAudio(hintSound(:, 1)', fsHint, fsDevice);
     KbGet(32, 20);
 
-    sounds = cellfun(@(x) resampleData(reshape(x, [1, length(x)]), fsSound, fsDevice), sounds, 'UniformOutput', false);
+    sounds = cellfun(@(x) resampleData(x(:)', fsSound, fsDevice), sounds, 'UniformOutput', false);
     
     % ITI
     ITI = mode(ITIs(app.pIDsRules == pID));
