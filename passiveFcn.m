@@ -1,21 +1,21 @@
-function passiveFcn(app)
+function trialsData = passiveFcn(app)
     parseStruct(app.params);
     pID = app.pIDList(app.pIDIndex);
     dataPath = fullfile(app.dataPath, [datestr(now, 'yyyymmdd'), '-', app.subjectInfo.ID]);
     fsDevice = fs * 1e3;
-
+    
     [sounds, soundNames, fsSound] = loadSounds(pID);
-
-    % Hint for manual starting
-    try
+    
+    % Load hint sound
+    if exist(fullfile(fileparts(mfilename("fullpath")), 'sounds\hint\', [num2str(pID), '.mp3']), "file")
         [hintSound, fsHint] = audioread(fullfile(fileparts(mfilename("fullpath")), 'sounds\hint\', [num2str(pID), '.mp3']));
-    catch
-        [hintSound, fsHint] = audioread(fullfile(fileparts(mfilename("fullpath")), 'sounds\hint\passive start hint.mp3'));
+    else
+        [hintSound, fsHint] = audioread(fullfile(fileparts(mfilename("fullpath")), 'sounds\hint\active start hint.mp3'));
     end
-    playAudio(hintSound(:, 1)', fsHint, fsDevice);
-    KbGet(32, 20);
 
-    sounds = cellfun(@(x) resampleData(x(:)', fsSound, fsDevice), sounds, 'UniformOutput', false);
+    % Load rules
+    rules = readtable(app.rulesPath);
+    rules = rules(rules.pID == pID, :);
     
     % ITI
     ITI = mode(ITIs(app.pIDsRules == pID));
@@ -25,26 +25,69 @@ function passiveFcn(app)
     
     % nRepeat
     temp = app.nRepeat(app.pIDsRules == pID);
+
     if length(temp) ~= length(sounds)
         error('rules file does not match sound files.');
     end
+
     if useSettingnRepeat
         temp(:) = nRepeat;
     else
         temp(isnan(temp)) = nRepeat;
     end
+
     orders = [];
+
     for index = 1:length(temp)
-        orders  = [orders, repmat(index, 1, temp(index))];
-    end 
-    orders = orders(randperm(length(orders)));
+        orders = [orders, repmat(index, 1, temp(index))];
+    end
+
+    % Resample
+    % sound is a [nsample, nch] double matrix
+    if ~isequal(fsSound, fsDevice)
+        sounds = cellfun(@(x) resampleData(x, fsSound, fsDevice), sounds, 'UniformOutput', false);
+    end
+
+    % Convert single-channel sound wave to 2-channel sound wave
+    sz = cellfun(@size, sounds, "UniformOutput", false);
+
+    if ~all(cellfun(@(x) isequal(x(2), sz{1}(2)), sz))
+        warning("Not all sounds have the same channel number.");
+        nchs = cellfun(@(x) x(2), sz);
+
+        if any(nchs > 2)
+            error("The number of sound channels should not be greater than 2.");
+        end
+
+        idx = nchs == 1;
+        sounds(idx) = cellfun(@(x) repmat(x(:)', 2, 1), sounds(idx), "UniformOutput", false);
+        sounds(~idx) = cellfun(@(x) x', sounds(~idx), "UniformOutput", false);
+    else
+
+        if size(sounds{1}, 2) == 1
+            sounds = cellfun(@(x) repmat(x(:)', 2, 1), sounds, "UniformOutput", false);
+        end
+
+    end
+
+    % Play hint sound
+    playAudio(hintSound, fsHint, fsDevice);
+
+    % Wait for keyboard response
+    KbGet(32, 20);
+
+    % Randomize orders
+    idx = randperm(length(orders));
+    orders = orders(idx);
     
+    % Parameter setting for PTB
     reqlatencyclass = 2;
     nChs = 2;
     optMode = 1;
     pahandle = PsychPortAudio('Open', [], optMode, reqlatencyclass, fsDevice, nChs);
-    PsychPortAudio('Volume', pahandle, volumn); 
+    PsychPortAudio('Volume', pahandle, volumn);
     
+    % Init variables
     pressTime = cell(length(orders), 1);
     key = cell(length(orders), 1);
     startTime = cell(length(orders), 1);
@@ -57,45 +100,43 @@ function passiveFcn(app)
     else
         itiJitters = zeros(length(orders), 1);
     end
-
-    rules = readtable(app.rulesPath);
-    rules = rules(rules.pID == pID, :);
-
+    
     mTrigger(triggerType, ioObj, 1, address);
     WaitSecs(2);
-
-    orders = reshape(orders, [length(orders), 1]);
+    
+    nMiss = 0;
+    orders = orders(:);
     
     for index = 1:length(orders)
-        
+
         if index == 1
             % To prevent burst sound caused by sudden change from zero
             PsychPortAudio('FillBuffer', pahandle, [zeros(1, 10); zeros(1, 10)]);
             PsychPortAudio('Start', pahandle, 1, 0, 1);
             st = PsychPortAudio('Stop', pahandle, 1, 1);
 
-            PsychPortAudio('FillBuffer', pahandle, repmat(sounds{orders(index)}, 2, 1));
+            PsychPortAudio('FillBuffer', pahandle, sounds{orders(index)});
             PsychPortAudio('Start', pahandle, 1, st + 0.1, 1);
             t0 = now;
         else
-            PsychPortAudio('FillBuffer', pahandle, repmat(sounds{orders(index)}, 2, 1));
+            PsychPortAudio('FillBuffer', pahandle, sounds{orders(index)});
             PsychPortAudio('Start', pahandle, 1, startTime{index - 1} + ITI + itiJitters(index), 1);
         end
-        
+
         % Trigger for EEG recording
         mTrigger(triggerType, ioObj, codes(orders(index)), address);
-        
+
         [startTime{index}, ~, ~, estStopTime{index}] = PsychPortAudio('Stop', pahandle, 1, 1);
         soundName{index} = soundNames{orders(index)};
-        app.StateLabel.Text = strcat(app.protocolList.Text{app.protocolList.pID == app.pIDList(app.pIDIndex)}, '(Total: ', num2str(index), '/', num2str(length(orders)), ')');
+        app.StateLabel.Text = strcat(app.protocolList.Text{app.protocolList.pID == app.pIDList(app.pIDIndex)}, '(Total: ', num2str(index), '/', num2str(length(orders)), ', Miss: ', num2str(nMiss), ')');
 
         % For termination
         pause(0.1);
-
+    
         if strcmp(app.status, 'stop')
             break;
         end
-
+    
     end
     
     PsychPortAudio('Close');
@@ -119,11 +160,11 @@ function passiveFcn(app)
     else
         save(fullfile(dataPath, [num2str(pID), '_redo.mat']), "trialsData", "rules");
     end
-
+    
     WaitSecs(5);
-
+    
     if strcmp(app.status, 'start')
-
+    
         if pID == app.pIDList(end)
             app.AddSubjectButton.Enable = 'on';
             app.SetParamsButton.Enable = 'on';
@@ -134,10 +175,10 @@ function passiveFcn(app)
             app.DataPathPanel.Enable = 'on';
             app.StateLabel.Text = '本次试验已完成';
             [hintSound, fsHint] = audioread(fullfile(fileparts(mfilename("fullpath")), 'sounds\hint\end of all.mp3'));
-            playAudio(hintSound(:, 1)', fsHint, fsDevice);
+            playAudio(hintSound, fsHint, fsDevice);
         else
             [hintSound, fsHint] = audioread(fullfile(fileparts(mfilename("fullpath")), 'sounds\hint\end of section.mp3'));
-            playAudio(hintSound(:, 1)', fsHint, fsDevice);
+            playAudio(hintSound, fsHint, fsDevice);
             app.NextButton.Enable = 'on';
             app.timerInit;
             start(app.mTimer);
@@ -145,6 +186,6 @@ function passiveFcn(app)
     
         drawnow;
     end
-
+    
     return;
 end
