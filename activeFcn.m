@@ -169,8 +169,8 @@ function trialsData = activeFcn(app)
         [startTime{index}, ~, ~, estStopTime{index}] = PsychPortAudio('Stop', pahandle, 1, 1);
     
         if cueLags(index) > 0
-            PsychPortAudio('FillBuffer', pahandle, repmat(cueSound, 2, 1));
-            PsychPortAudio('Start', pahandle, 1, startTime{index} + size(sounds{orders(index)}, 2) / fsSound + cueLags(index), 1);
+            PsychPortAudio('FillBuffer', pahandle, cueSound);
+            PsychPortAudio('Start', pahandle, 1, startTime{index} + size(sounds{orders(index)}, 2) / fsDevice + cueLags(index), 1);
             PsychPortAudio('Stop', pahandle, 1, 1);
         end
 
