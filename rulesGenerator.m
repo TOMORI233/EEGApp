@@ -135,8 +135,12 @@ tb2Insert = reshape([paraNames, paraVals]', [], 1);
 tb2Insert = struct2table(struct(tb2Insert{:}));
 
 [pathstr, name, ext] = fileparts(rulesPath);
-if exist(rulesPath, "file")
-    tb0 = readtable(rulesPath);
+if strcmp(pathstr, '')
+    pathstr = pwd;
+end
+
+if exist(fullfile(pathstr, strcat(name, ext)), "file")
+    tb0 = readtable(fullfile(pathstr, strcat(name, ext)));
 
     % Reorder by pID
     [~, idx] = sortrows(tb0.pID, 1, "ascend");
@@ -155,7 +159,7 @@ if exist(rulesPath, "file")
     catch ME
 
         if strcmpi(forceOpt, "off")
-            Msgbox({ME.message; ''; '已另存为尾缀为_pID-x.xlsx文件'}, "Warning", "Alignment", "top-center");
+            Msgbox({ME.message; ''; '已另存为尾缀为_pID-x.xlsx文件'}, "Warning", "Alignment", "center-top");
 
             % Merge to former rules file (merge common parameters only)
             writetable([tb0(:, 1:10); tb2Insert(:, 1:10)], rulesPath);
