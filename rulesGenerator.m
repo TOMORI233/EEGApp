@@ -51,12 +51,11 @@ cueLag = mIp.Results.cueLag;
 processFcn = mIp.Results.processFcn;
 forceOpt = mIp.Results.forceOpt;
 
-files = dir(soundDir);
+files = dir(fullfile(soundDir, "*.wav"));
 if isempty(files)
     error("Empty or non-existent directory of sounds!");
 end
 [~, soundNames] = cellfun(@(x) fileparts(x), {files.name}, "UniformOutput", false);
-soundNames = soundNames(3:end)';
 
 %% Parse parameters from sound names
 temp = cellfun(@(x) split(x, '_'), soundNames, "UniformOutput", false);
@@ -91,7 +90,10 @@ if isscalar(nRepeat) && isnumeric(nRepeat)
 elseif isempty(nRepeat)
     nRepeat = {repmat({nan}, [n, 1])};
 else % numeric vector
-    nRepeat = mat2cell(reshape(nRepeat, [length(nRepeat), 1]), ones(n, 1));
+    if numel(nRepeat) ~= n
+        error("Invalid nRepeat input");
+    end
+    nRepeat = {num2cell(nRepeat(:))};
 end
 
 if isscalar(cueLag) && isnumeric(cueLag)
