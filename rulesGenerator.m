@@ -68,7 +68,7 @@ for index = 1:length(paraList)
             cellfun(@(x) x{2}, paraList{index}, "UniformOutput", false)]';
     paraStruct{index} = struct(temp{:});
 end
-paraStruct = structcat(paraStruct{:});
+paraStruct = mu.structcat(paraStruct{:});
 paraNames = fieldnames(paraStruct);
 
 % convert numeric params to double
@@ -76,7 +76,7 @@ for index = 1:length(paraNames)
     temp = {paraStruct.(paraNames{index})}';
     if all(cellfun(@(x) all(isstrprop(strrep(x, '.', ''), "digit") | all(isstrprop(x, "digit")) | strcmpi(x, 'nan') | strcmpi(x, 'inf')), ...
                    temp(~cellfun(@isempty, temp))))
-        paraStruct = addfield(paraStruct, paraNames{index}, cellfun(@str2double, temp));
+        paraStruct = mu.addfield(paraStruct, paraNames{index}, cellfun(@str2double, temp));
     end
 end
 
