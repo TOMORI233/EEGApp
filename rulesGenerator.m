@@ -2,10 +2,11 @@ function rulesGenerator(soundDir, ...            % directory path of sound files
                         rulesPath, ...           % full path of rules.xlsx
                         pID, ...                 % protocol ID, positive integer scalar
                         node0Hint, nodeHint, ... % texts shown in UI phase selection nodetree
+                                             ... % usually, [node0Hint] -> project/protocol name
+                                             ... %          [nodeHint ] -> protocol/phase name
                         apType, ...              % task type, "active" or "passive"
                         protocol, ...            % protocol name, eg "TB passive1", "Offset active2"
-                        ITI, ...                 % inter-trial interval in sec, positive scalar
-                        varargin)
+                        opts)
 % Description:
 %     Automatically generate rules.xlsx by sound file names.
 %
@@ -17,45 +18,95 @@ function rulesGenerator(soundDir, ...            % directory path of sound files
 %     - DO NOT put duplicated parameters in your wave file name (eg. protocol, ITI).
 %
 % Optional Input:
-%     nRepeat: scalar (for all) or vector (for single)
-%     cueLag: for active protocols, the time lag from the offset of prior sound to the cue for choice
-%     processFcn: function_handle, for behavior real-time monitoring
+%     nRepeat: scalar (for all) or vector (for single).
+%     processFcn: function_handle, for behavior real-time monitoring.
 %                 Please do make sure ITI > soundDur + choiceWin + ~0.5 to avoid delay in playing sounds.
 %     forceOpt: if set "on", will add new columns to the original table and leave blank if new params of 
 %               the former ones do not exist.
+%     eventFlow: full path of a MAT file which defines the event flow of the task, including ITI,
+%                stimulus duration, cue, and choice window.
+%     identifier: identifier of stimuli (e.g., 'A1', 'cue') in the event flow.
 %
 % Example:
+%     % Create event flow for this protocol. Use eventFlowApp
+%     app = eventFlowApp();
+%     uiwait(app.UIFigure);
+%     eventFlow = app.filepath;
+%     
+%     % Generate rule file
 %     pID = 101;
-%     ITI = 3.5; % sec
 %     nRepeat = 2;
-%     rulesGenerator(fullfile("sounds", num2str(pID)), ...
-%                    "rules\start-end effect\rules.xlsx", ...
-%                    pID, ...
-%                    "start-end效应部分", ...
-%                    "预实验阶段-阈值", ...
-%                    "active", ...
-%                    "SE pre", ...
-%                    ITI, ...
-%                    nRepeat, ...
+%     rulesGenerator(fullfile("sounds", num2str(pID)),    ... sound file path
+%                    "rules\start-end effect\rules.xlsx", ... rule file path
+%                    pID,                                 ... protocol ID
+%                    "Start-End Effect",                  ... project name
+%                    "Phase 0 - pre",                     ... phase name
+%                    "active",                            ... task type
+%                    "SE pre",                            ... protocol name
+%                    "nRepeat", nRepeat,                  ... repeat times of trials
+%                    "eventFlow", eventFlow,              ... event flow path
 %                    "forceOpt", "on");
 
-mIp = inputParser;
-mIp.addOptional("nRepeat", nan, @(x) isnumeric(x));
-mIp.addOptional("cueLag", nan, @(x) isnumeric(x));
-mIp.addOptional("processFcn", [], @(x) isscalar(x) && isa(x, "function_handle"));
-mIp.addParameter("forceOpt", "off", @(x) any(validatestring(x, {'on', 'off'})));
-mIp.parse(varargin{:});
+%% Parse inputs
+arguments
+    soundDir    {mustBeFolder, mustBeTextScalar}
+    rulesPath   {mustBeTextScalar}
+    pID         (1,1) double {mustBePositive, mustBeInteger}
+    node0Hint   {mustBeTextScalar}
+    nodeHint    {mustBeTextScalar}
+    apType      {mustBeTextScalar}
+    protocol    {mustBeTextScalar}
 
-nRepeat = mIp.Results.nRepeat;
-cueLag = mIp.Results.cueLag;
-processFcn = mIp.Results.processFcn;
-forceOpt = mIp.Results.forceOpt;
-
-files = dir(fullfile(soundDir, "*.wav"));
-if isempty(files)
-    error("Empty or non-existent directory of sounds!");
+    opts.nRepeat    (:,1) double = []
+    opts.processFcn (1,1) function_handle
+    opts.forceOpt   {mu.OptionState.validate} = mu.OptionState.Off
+    opts.eventFlow  {mustBeFile, mustBeTextScalar} = fullfile(fileparts(mfilename("fullpath")), "config", sprintf('preset_%s.mat', apType));
+    opts.identifier = '';
 end
+
+% sound files
+files = dir(fullfile(soundDir, "*.wav"));
+assert(~isempty(files), "Empty or non-existent directory of sounds!");
 [~, soundNames] = cellfun(@(x) fileparts(x), {files.name}, "UniformOutput", false);
+n = length(soundNames);
+
+% identifier in the event flow
+identifier = cellstr(opts.identifier);
+if isscalar(identifier)
+    identifier = {repmat(identifier, [n, 1])};
+else
+    assert(numel(identifier) == n, "The number of identifiers should match the number of sound files");
+    identifier = {identifier};
+end
+
+% task type
+apType = validatestring(apType, {'passive', 'active'});
+
+% repeat times
+nRepeat = opts.nRepeat;
+if isempty(nRepeat)
+    nRepeat = {repmat({nan}, [n, 1])};
+elseif isscalar(nRepeat)
+    nRepeat = {repmat({nRepeat}, [n, 1])};
+else % numeric vector
+    assert(numel(nRepeat) == n, "The number of nRepeat should match the number of sound files");
+    nRepeat = {num2cell(nRepeat(:))};
+end
+
+% process function handle, for real-time monitoring
+if isfield(opts, "processFcn")
+    processFcn = opts.processFcn;
+    processFcn = {repmat({string(func2str(processFcn))}, [n, 1])};
+else
+    processFcn = {repmat({""}, [n, 1])};
+end
+
+% force append xlsx file option (concatenate anyway)
+forceOpt = mu.OptionState.create(opts.forceOpt).toLogical;
+
+% event flow table path
+eventFlow = opts.eventFlow;
+eventFlow = {repmat({string(eventFlow)}, [n, 1])};
 
 %% Parse parameters from sound names
 temp = cellfun(@(x) split(x, '_'), soundNames, "UniformOutput", false);
@@ -83,53 +134,26 @@ end
 paraVals = cellfun(@(x) {paraStruct.(x)}', paraNames, "UniformOutput", false);
 
 %% Write to xlsx
-n = length(soundNames);
-
-if isscalar(nRepeat) && isnumeric(nRepeat)
-    nRepeat = {repmat({nRepeat}, [n, 1])};
-elseif isempty(nRepeat)
-    nRepeat = {repmat({nan}, [n, 1])};
-else % numeric vector
-    if numel(nRepeat) ~= n
-        error("Invalid nRepeat input");
-    end
-    nRepeat = {num2cell(nRepeat(:))};
-end
-
-if isscalar(cueLag) && isnumeric(cueLag)
-    cueLag = {repmat({cueLag}, [n, 1])};
-elseif isempty(cueLag)
-    cueLag = {repmat({nan}, [n, 1])};
-else % numeric vector
-    cueLag = mat2cell(reshape(cueLag, [length(cueLag), 1]), ones(n, 1));
-end
-
-if isempty(processFcn)
-    processFcn = {repmat({""}, [n, 1])};
-else
-    processFcn = {repmat({string(func2str(processFcn))}, [n, 1])};
-end
-
-paraNames = [{'pID'}; ...
-             {'node0Hint'}; ...
-             {'nodeHint'}; ...
-             {'apType'}; ...
-             {'protocol'}; ...
-             {'code'}; ...
-             {'ITI'}; ...
-             {'nRepeat'}; ...
-             {'cueLag'}; ...
-             {'processFcn'}; ...
-             paraNames];
+presetParams = [{'pID'}; ...
+                {'node0Hint'}; ...
+                {'nodeHint'}; ...
+                {'apType'}; ...
+                {'protocol'}; ...
+                {'code'}; ...
+                {'identifier'}
+                {'eventFlow'}; ...
+                {'nRepeat'}; ...
+                {'processFcn'}];
+paraNames = [presetParams; paraNames];
 paraVals = [{repmat({pID},        [n, 1])}; ...
             {repmat({node0Hint},  [n, 1])}; ...
             {repmat({nodeHint},   [n, 1])}; ...
             {repmat({apType},     [n, 1])}; ...
             {repmat({protocol},   [n, 1])}; ...
-            {mat2cell((4:3 + n)', ones(n, 1))}; ...
-            {repmat({ITI},        [n, 1])}; ...
+            {num2cell((4:3 + n)')}; ...
+            identifier; ...
+            eventFlow; ...
             nRepeat;
-            cueLag;
             processFcn;
             paraVals];
 
@@ -161,18 +185,18 @@ if exist(fullfile(pathstr, strcat(name, ext)), "file")
     catch ME
 
         if strcmpi(forceOpt, "off")
-            Msgbox({ME.message; ''; '已另存为尾缀为_pID-x.xlsx文件'}, "Warning", "Alignment", "center-top");
+            uialert({ME.message; ''; '已另存为尾缀为_pID-x.xlsx文件'});
 
             % Merge to former rules file (merge common parameters only)
-            writetable([tb0(:, 1:10); tb2Insert(:, 1:10)], rulesPath);
+            writetable([tb0(:, 1:numel(presetParams)); tb2Insert(:, 1:numel(presetParams))], rulesPath);
 
             % Create new rules file for a specific protocol
             writetable(tb2Insert, fullfile(pathstr, strcat(name, "_pID-", num2str(pID), ext)), "WriteMode", "replacefile");
         else
-            tbNew = [tb0(1:insertIdx, 1:10); tb2Insert(:, 1:10); tb0(insertIdx + 1:end, 1:10)];
-            paraNames = unique([paraNames; tb0.Properties.VariableNames(10:end)'], "stable");
+            tbNew = [tb0(1:insertIdx, 1:numel(presetParams)); tb2Insert(:, 1:numel(presetParams)); tb0(insertIdx + 1:end, 1:numel(presetParams))];
+            paraNames = unique([paraNames; tb0.Properties.VariableNames(numel(presetParams):end)'], "stable");
 
-            for pIndex = 10:length(paraNames)
+            for pIndex = numel(presetParams):length(paraNames)
                 
                 if ~any(strcmp(paraNames{pIndex}, tb2Insert.Properties.VariableNames))
                     % Parameter exists in old rules but not in new rules

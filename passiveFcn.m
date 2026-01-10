@@ -1,5 +1,5 @@
 function trialsData = passiveFcn(app)
-    parseStruct(app.params);
+    mu.parsestruct(app.params);
     pID = app.pIDList(app.pIDIndex);
     dataPath = fullfile(app.dataPath, [datestr(now, 'yyyymmdd'), '-', app.subjectInfo.ID]);
     fsDevice = fs * 1e3;
@@ -21,7 +21,7 @@ function trialsData = passiveFcn(app)
     ITI = mode(ITIs(app.pIDsRules == pID));
 
     % ITI jitter
-    itiJitter = getOr(app.params, "itiJitter"); % sec
+    itiJitter = mu.getor(app.params, "itiJitter"); % sec
     
     % nRepeat
     temp = app.nRepeat(app.pIDsRules == pID);
@@ -45,7 +45,7 @@ function trialsData = passiveFcn(app)
     % Resample
     % sound is a [nsample, nch] double matrix
     if ~isequal(fsSound, fsDevice)
-        sounds = cellfun(@(x) resampleData(x, fsSound, fsDevice), sounds, 'UniformOutput', false);
+        sounds = cellfun(@(x) mu.resampledata(x, fsSound, fsDevice), sounds, 'UniformOutput', false);
     end
 
     % Convert single-channel sound wave to 2-channel sound wave

@@ -1,8 +1,9 @@
 function trialsData = activeFcn(app)
-    parseStruct(app.params);
+    mu.parsestruct(app.params);
     pID = app.pIDList(app.pIDIndex);
     dataPath = fullfile(app.dataPath, [datestr(now, 'yyyymmdd'), '-', app.subjectInfo.ID]);
     fsDevice = fs * 1e3;
+    userStart = mu.OptionState.create(app.params.userStart).toLogical;
     
     [sounds, soundNames, fsSound] = loadSounds(pID);
     
@@ -18,7 +19,7 @@ function trialsData = activeFcn(app)
         [cueSound, fsCue] = audioread(fullfile(fileparts(mfilename("fullpath")), 'sounds\hint\cue.wav'));
 
         if ~isequal(fsSound, fsDevice)
-            cueSound = resampleData(cueSound, fsCue, fsDevice);
+            cueSound = mu.resampledata(cueSound, fsCue, fsDevice);
         end
 
         if size(cueSound, 2) == 1
@@ -39,7 +40,7 @@ function trialsData = activeFcn(app)
     ITI = mode(ITIs(app.pIDsRules == pID));
 
     % ITI jitter
-    itiJitter = getOr(app.params, "itiJitter"); % sec
+    itiJitter = mu.getor(app.params, "itiJitter"); % sec
     
     % nRepeat & cueLag
     temp = app.nRepeat(app.pIDsRules == pID);
@@ -67,7 +68,7 @@ function trialsData = activeFcn(app)
     % Resample
     % sound is a [nsample, nch] double matrix
     if ~isequal(fsSound, fsDevice)
-        sounds = cellfun(@(x) resampleData(x, fsSound, fsDevice), sounds, 'UniformOutput', false);
+        sounds = cellfun(@(x) mu.resampledata(x, fsSound, fsDevice), sounds, 'UniformOutput', false);
     end
 
     % Convert single-channel sound wave to 2-channel sound wave
@@ -156,11 +157,21 @@ function trialsData = activeFcn(app)
             t0 = now;
         else
             PsychPortAudio('FillBuffer', pahandle, sounds{orders(index)});
-            if isinf(choiceWin)
-                PsychPortAudio('Start', pahandle, 1, pressTime{index - 1} + ITI + itiJitters(index) - size(sounds{orders(index)}, 2) / fsDevice, 1);
+
+            if userStart
+                % Wait for keyboard response
+                t1 = KbGet(32, inf);
+                PsychPortAudio('Start', pahandle, 1, t1 + startInterval + itiJitters(index), 1);
             else
-                PsychPortAudio('Start', pahandle, 1, startTime{index - 1} + ITI + itiJitters(index), 1);
+
+                if isinf(choiceWin)
+                    PsychPortAudio('Start', pahandle, 1, pressTime{index - 1} + ITI + itiJitters(index) - size(sounds{orders(index)}, 2) / fsDevice, 1);
+                else
+                    PsychPortAudio('Start', pahandle, 1, startTime{index - 1} + ITI + itiJitters(index), 1);
+                end
+
             end
+
         end
 
         % Trigger for EEG recording
