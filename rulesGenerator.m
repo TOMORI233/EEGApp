@@ -4,7 +4,6 @@ function rulesGenerator(soundDir, ...            % directory path of sound files
                         node0Hint, nodeHint, ... % texts shown in UI phase selection nodetree
                                              ... % usually, [node0Hint] -> project/protocol name
                                              ... %          [nodeHint ] -> protocol/phase name
-                        apType, ...              % task type, "active" or "passive"
                         protocol, ...            % protocol name, eg "TB passive1", "Offset active2"
                         opts)
 % Description:
@@ -26,12 +25,17 @@ function rulesGenerator(soundDir, ...            % directory path of sound files
 %     eventFlow: full path of a MAT file which defines the event flow of the task, including ITI,
 %                stimulus duration, cue, and choice window.
 %     identifier: identifier of stimuli (e.g., 'A1', 'cue') in the event flow.
+%     group: group identifier. Grouped stimuli are presented together instead of in random combination.
+%            For example, the event flow includes 'A1-V1-A2'. All stimuli are in one folder. Stimuli
+%            labelled with the same group identifier will be presented in one trial, or otherwise
+%            randomized separately.
 %
 % Example:
 %     % Create event flow for this protocol. Use eventFlowApp
 %     app = eventFlowApp();
 %     uiwait(app.UIFigure);
 %     eventFlow = app.filepath;
+%     delete(app);
 %     
 %     % Generate rule file
 %     pID = 101;
@@ -41,10 +45,10 @@ function rulesGenerator(soundDir, ...            % directory path of sound files
 %                    pID,                                 ... protocol ID
 %                    "Start-End Effect",                  ... project name
 %                    "Phase 0 - pre",                     ... phase name
-%                    "active",                            ... task type
 %                    "SE pre",                            ... protocol name
 %                    "nRepeat", nRepeat,                  ... repeat times of trials
 %                    "eventFlow", eventFlow,              ... event flow path
+%                    "identifier", "A1",                  ... identifer matched to event flow
 %                    "forceOpt", "on");
 
 %% Parse inputs
@@ -54,19 +58,20 @@ arguments
     pID         (1,1) double {mustBePositive, mustBeInteger}
     node0Hint   {mustBeTextScalar}
     nodeHint    {mustBeTextScalar}
-    apType      {mustBeTextScalar}
     protocol    {mustBeTextScalar}
 
     opts.nRepeat    (:,1) double = []
     opts.processFcn (1,1) function_handle
     opts.forceOpt   {mu.OptionState.validate} = mu.OptionState.Off
-    opts.eventFlow  {mustBeFile, mustBeTextScalar} = fullfile(fileparts(mfilename("fullpath")), "config", sprintf('preset_%s.mat', apType));
-    opts.identifier = '';
+    opts.eventFlow  {mustBeFile, mustBeTextScalar} = fullfile(fileparts(mfilename("fullpath")), "config", sprintf('eventFlow_%s.mat', apType))
+    opts.identifier {mustBeText} = ''
+    opts.group      {mustBeText} = ''
 end
 
 % sound files
 files = dir(fullfile(soundDir, "*.wav"));
 assert(~isempty(files), "Empty or non-existent directory of sounds!");
+soundPaths = arrayfun(@(x) fullfile(x.folder, x.name), files, "UniformOutput", false);
 [~, soundNames] = cellfun(@(x) fileparts(x), {files.name}, "UniformOutput", false);
 n = length(soundNames);
 
@@ -79,8 +84,14 @@ else
     identifier = {identifier};
 end
 
-% task type
-apType = validatestring(apType, {'passive', 'active'});
+% group
+group = cellstr(opts.group);
+if isscalar(group)
+    group = {repmat(group, [n, 1])};
+else
+    assert(numel(group) == n, "The number of groups should match the number of sound files");
+    group = {group};
+end
 
 % repeat times
 nRepeat = opts.nRepeat;
@@ -134,27 +145,30 @@ end
 paraVals = cellfun(@(x) {paraStruct.(x)}', paraNames, "UniformOutput", false);
 
 %% Write to xlsx
-presetParams = [{'pID'}; ...
-                {'node0Hint'}; ...
-                {'nodeHint'}; ...
-                {'apType'}; ...
-                {'protocol'}; ...
-                {'code'}; ...
-                {'identifier'}
-                {'eventFlow'}; ...
-                {'nRepeat'}; ...
-                {'processFcn'}];
+presetParams = {'pID';
+                'node0Hint';
+                'nodeHint';
+                'protocol';
+                'code';
+                'identifier';
+                'group';
+                'eventFlow';
+                'nRepeat';
+                'processFcn';
+                'filePath'};
 paraNames = [presetParams; paraNames];
+
 paraVals = [{repmat({pID},        [n, 1])}; ...
             {repmat({node0Hint},  [n, 1])}; ...
             {repmat({nodeHint},   [n, 1])}; ...
-            {repmat({apType},     [n, 1])}; ...
             {repmat({protocol},   [n, 1])}; ...
             {num2cell((4:3 + n)')}; ...
             identifier; ...
+            group; ...
             eventFlow; ...
-            nRepeat;
-            processFcn;
+            nRepeat; ...
+            processFcn; ...
+            {soundPaths}; ...
             paraVals];
 
 tb2Insert = reshape([paraNames, paraVals]', [], 1);

@@ -21,12 +21,12 @@
             {"name": "pID", "kind": "required", "type": ["integer", "positive", "scalar"]},
             {"name": "node0Hint", "kind": "required", "type": [["@(x) isempty(x) || isnan(x)"], ["string"], ["char"]]},
             {"name": "nodeHint", "kind": "required", "type":  [["@(x) isempty(x) || isnan(x)"], ["string"], ["char"]]},
-            {"name": "apType", "kind": "required", "type":    ["choices = {'active', 'passive'}"]},
             {"name": "protocol", "kind": "required", "type":  [["@(x) isempty(x) || isnan(x)"], ["string"], ["char"]]},
             {"name": "identifier", "kind": "namevalue", "type":  [["char"], ["string"]]},
             {"name": "nRepeat", "kind": "namevalue", "type":  [["@(x) isempty(x) || isnan(x)"], ["integer", "positive", "vector"]]},
             {"name": "processFcn", "kind": "namevalue", "type":  [["@(x) isempty(x)"], ["function_handle", "scalar"]]},
-            {"name": "forceOpt", "kind": "namevalue", "type":  ["choices = {'on', 'off'}"]}
+            {"name": "forceOpt", "kind": "namevalue", "type":  ["choices = {'on', 'off'}"]},
+            {"name": "group", "kind": "namevalue", "type":  [["char"], ["string"]]}
         ]
     }
 }
