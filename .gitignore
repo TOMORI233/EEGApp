@@ -4,6 +4,7 @@
 #ignore sounds folder
 sounds/*
 !sounds/hint/
+!sounds/defaults/
 
 #ignore Data folder
 Data/
@@ -19,6 +20,8 @@ Data/
 #ignore MAT
 *.mat
 **/*.mat
+!config/eventFlow_active.mat
+!config/eventFlow_passive.mat
 
 #ignore following files;
 *.asv

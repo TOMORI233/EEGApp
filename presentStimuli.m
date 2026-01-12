@@ -88,8 +88,8 @@ audioDB = preloadAudio_(rules, params.fs);
 
 % ----------------------------- record trial info -----------------------------
 temp = cell(size(evts, 1), 1);
-evtTemplate = struct("type", temp, "tStart", temp, "tEnd", temp, ...
-    "stiName", temp, "code", temp, ...
+evtTemplate = struct("type", temp, "tStart", temp, ...
+    "identifier", temp, "code", temp, ...
     "tKeypress", temp, "key", temp);
 
 temp = cell(ntrial, 1);
@@ -114,7 +114,7 @@ PsychPortAudio('Volume', pahandle, params.volumn);
 % To prevent burst sound caused by sudden change from zero
 PsychPortAudio('FillBuffer', pahandle, [zeros(1, 10); zeros(1, 10)]);
 PsychPortAudio('Start', pahandle, 1, 0, 1);
-st = PsychPortAudio('Stop', pahandle, 1, 1); %#ok<NASGU>
+PsychPortAudio('Stop', pahandle, 1, 1);
 
 % TODO: Init visual (leave blank; open window only if you implement visual)
 win = [];
@@ -132,27 +132,25 @@ startIdx = find(evts.kind=="start", 1, "first");
 assert(~isempty(startIdx), "Start event is required in event flow.");
 
 % ----------------------------- trial loop -----------------------------
-t0 = GetSecs;
-tPrevEnd = t0;
-
-onsetCell  = cell(ntrial,1);
-offsetCell = cell(ntrial,1);
-codeCell   = cell(ntrial,1);
-pushCell   = cell(ntrial,1);
-keyCell    = cell(ntrial,1);
-
+disp("Waiting for [SPACE] to be pressed...");
 KbGet(32, 20); % Wait for user start
 sendMarker_(triggerType, ioObj, address, 1); % task start
+WaitSecs(2);
+
+abortFlag = false;
+
+t0 = GetSecs;
+tPrevEnd = t0;
 
 for trlIdx = 1:ntrial
 
     % ---- build per-trial event records ----
     evtRec = evtTemplate;
     for e = 1:height(evts)
-        evtRec(e).type = char(evts.kind(e));
+        evtRec(e).type = string(evts.kind(e));
         evtRec(e).tStart = NaN;
         evtRec(e).tEnd = NaN;
-        evtRec(e).stiName = "";
+        evtRec(e).identifier = "";
         evtRec(e).code = NaN;
         evtRec(e).tKeypress = NaN;
         evtRec(e).key = 0;
@@ -166,11 +164,11 @@ for trlIdx = 1:ntrial
     % We define tTrial0 as the "start time zero" for this trial.
     % - auto    : tTrial0 = tReady (the moment trial is allowed to start)
     % - keyboard: wait for subject keypress after tReady, then tTrial0 = keypress time
-    
     if startSpec.mode == "keyboard"
         % optional: ensure clean edge detection
         KbReleaseWait;
         [tKey, keyCode] = KbGet(startSpec.keycode, inf);
+        sendMarker_(triggerType, ioObj, address, 1); % trial start
     
         tTrial0 = tKey;
     
@@ -181,27 +179,20 @@ for trlIdx = 1:ntrial
     else
         tTrial0 = tReady;
         evtRec(startIdx).tStart = tReady;
-        evtRec(startIdx).code = 1;
     end
 
     % ---- generate per-event jittered schedule ----
     sch = compileSchedule_(evts, trialMat(trlIdx,:), idInfo, rules, tTrial0);
 
     % ---- execute schedule in time order ----
-    pressT = NaN;
-    pressKey = 0;
-
     for s = 1:height(sch)
         k  = sch.kind(s);
         md = sch.modality(s);
         id = sch.identifier(s);
-        tPlan0 = sch.tAbs0(s);
-        tPlan1 = sch.tAbs1(s);
+        tPlan0 = sch.tAbs0(s); % start
+        tPlan1 = sch.tAbs1(s); % end
 
-        % wait until onset
-        if GetSecs < tPlan0
-            WaitSecs('UntilTime', max(GetSecs, tPlan0 - 0.002));
-        end
+        evtRec(sch.evtIndex(s)).identifier = string(id);
 
         if k=="stimuli" || k=="cue"
 
@@ -227,7 +218,7 @@ for trlIdx = 1:ntrial
                 % If/when implemented, it should draw to backbuffer then Flip at tPlan0.
                 % e.g.:
                 %   vis.drawFcn(win);
-                %   Screen('Flip', win, tPlan0 - slack);
+                %   evtRec(sch.evtIndex(s)).tStart = Screen('Flip', win, tPlan0 - slack);
 
                 % ---- marker at event onset ----
                 sendMarker_(triggerType, ioObj, address, sch.markerCode(s));
@@ -236,14 +227,10 @@ for trlIdx = 1:ntrial
                 % ---------------- auditory playback ----------------
                 wave = pickWave_(audioDB, id);
                 PsychPortAudio('FillBuffer', pahandle, wave);
-                PsychPortAudio('Start', pahandle, 1, tPlan0, 0);
+                evtRec(sch.evtIndex(s)).tStart = PsychPortAudio('Start', pahandle, 1, tPlan0, 1);
 
                 % ---- marker at event onset ----
                 sendMarker_(triggerType, ioObj, address, sch.markerCode(s));
-
-                [evtRec(sch.evtIndex(s)).tStart, ~, ~, evtRec(sch.evtIndex(s)).tEnd] = PsychPortAudio('Stop', pahandle, 1, 1);
-
-                evtRec(sch.evtIndex(s)).stiName = char(id);
 
                 % code: use rules.code for this specific row
                 rr = sch.ruleRow{s};
@@ -256,24 +243,24 @@ for trlIdx = 1:ntrial
             % ================================
             % wait for keyboard response (KbGet)
             % ================================
-            % Use remaining window from now
-            tNow = GetSecs;
-            limit = max(0, tPlan1 - tNow);
-
+            % Use remaining window from keyboard release
             KbReleaseWait; % ensure edge detection clean
+            tNow = GetSecs;
+            if tNow < tPlan0
+                WaitSecs('UntilTime', tPlan0);
+            end
+            limit = max(0, tPlan1 - tNow);
             [secsPress, keyPress] = KbGet(validKeycode, limit);
 
             % marker for response
             if keyPress ~= 0
                 sendMarker_(triggerType, ioObj, address, find(keyPress == validKeycode) + 1);
+                evtRec(sch.evtIndex(s)).tKeypress = secsPress;
+                evtRec(sch.evtIndex(s)).key = keyPress;
             end
-
-            pressT = secsPress;
-            pressKey = keyPress;
-
-            evtRec(sch.evtIndex(s)).tKeypress = secsPress;
-            evtRec(sch.evtIndex(s)).key = keyPress;
+            
         end
+
     end
 
     % ---- estimate trial end ----
@@ -283,25 +270,19 @@ for trlIdx = 1:ntrial
     trialsData(trlIdx).trialIndex = trlIdx;
     trialsData(trlIdx).events = evtRec;
 
-    % ---- build real-time monitor inputs (legacy compatible) ----
-    [onsetCell{trlIdx}, offsetCell{trlIdx}, codeCell{trlIdx}] = pickPrimaryStim_(sch);
-    pushCell{trlIdx} = pressT;
-    keyCell{trlIdx}  = pressKey;
+    % ---- update real-time monitor ----
+    updateRealtimeMonitor_(mon, app, rules, trialsData);
 
-    updateRealtimeMonitor_(mon, app, rules, onsetCell, offsetCell, codeCell, pushCell, keyCell);
-
-    % For termination
-    pause(0.1);
-
+    drawnow limitrate
     if strcmp(app.status, 'stop')
-        return;
+        abortFlag = true;
+        break;
     end
 
 end
 
-WaitSecs(4);
-
-if strcmp(app.status, 'start')
+if ~abortFlag
+    WaitSecs(4);
 
     if pID == app.pIDList(end)
         app.AddSubjectButton.Enable = 'on';
@@ -311,9 +292,11 @@ if strcmp(app.status, 'start')
         app.StopButton.Enable = 'off';
         app.PhaseSelectPanel.Enable = 'on';
         app.DataPathPanel.Enable = 'on';
+        app.RealtimemonitorButton.Enable = 'on';
         app.StateLabel.Text = 'All experiments are done!';
     else
         app.NextButton.Enable = 'on';
+        app.RealtimemonitorButton.Enable = 'on';
         app.timerInit;
         start(app.mTimer);
     end
@@ -621,10 +604,10 @@ function audioDB = preloadAudio_(rl, fsTarget)
 end
 
 function wave = pickWave_(audioDB, id)
-id = char(string(id));
-assert(isKey(audioDB, id), "No audio wave found for identifier '%s'.", id);
-waves = audioDB(id);
-wave = waves{randi(numel(waves))};
+    id = char(string(id));
+    assert(isKey(audioDB, id), "No audio wave found for identifier '%s'.", id);
+    waves = audioDB(id);
+    wave = waves{randi(numel(waves))};
 end
 
 function [choiceWin, validKeycode] = parseChoiceSpec_(ev)
@@ -736,11 +719,11 @@ function code = markerCode_(kind, identifier, rr)
     end
     
     switch kind
-        case "start",  base = 10;
-        case "stimuli",base = 20;
-        case "cue",    base = 40;
-        case "choice", base = 60;
-        otherwise,     base = 80;
+        case "start",  base = 1;
+        case "stimuli",base = nan;
+        case "cue",    base = 255;
+        case "choice", base = nan;
+        otherwise,     base = nan;
     end
     code = uint8(base + mod(simpleHash_(char(identifier)), 50));
 end
@@ -756,26 +739,6 @@ function sendMarker_(triggerType_, ioObj_, address_, code_)
         mTrigger(char(triggerType_), ioObj_, uint8(code_), address_);
     catch ME
         fprintf(2, "[TriggerError] %s\n", ME.message);
-    end
-end
-
-function [onset, offset, code] = pickPrimaryStim_(sch)
-    % For legacy behavior monitor: pick the first auditory stimuli as "primary"
-    idx = find(sch.kind=="stimuli" & sch.modality=="auditory", 1, "first");
-    if isempty(idx)
-        onset = [];
-        offset = [];
-        code = [];
-        return
-    end
-    onset = sch.tAbs0(idx);
-    offset = sch.tAbs1(idx);
-    
-    rr = sch.ruleRow{idx};
-    if istable(rr) && ~isempty(rr) && ismember("code", rr.Properties.VariableNames)
-        code = rr.code(1);
-    else
-        code = [];
     end
 end
 
@@ -804,17 +767,18 @@ function mon = initRealtimeMonitor_(app_, rules_)
         mon.processFcn = str2func(char(fcnStr));
         mon.processFcnName = char(fcnStr);
         mon.enabled = true;
-        try, app_.behavApp.processFcn = mon.processFcn; drawnow; catch, end
+        try app_.behavApp.processFcn = mon.processFcn; drawnow; catch, end
     catch
         mon.enabled = false;
     end
 end
 
-function updateRealtimeMonitor_(mon_, app_, rules_, onset_, offset_, code_, push_, key_)
+function updateRealtimeMonitor_(mon_, app_, rules_, trialsData)
     if ~isstruct(mon_) || ~mon_.enabled, return; end
     if ~(isprop(app_,"behavApp") && isa(app_.behavApp,"behaviorPlotApp") && isvalid(app_.behavApp)), return; end
     try
-        mon_.processFcn(app_.behavApp, rules_, onset_, offset_, code_, push_, key_);
+        trialsData = trialsData([trialsData.trialIndex]);
+        mon_.processFcn(app_.behavApp, rules_, trialsData);
     catch ME
         fprintf(2, "WARNING: processFcn error (%s): %s\n", mon_.processFcnName, ME.message);
     end
@@ -898,14 +862,14 @@ function trialMat = combineBlocks_(blocks, idsAll)
 end
 
 function startSpec = parseStartSpec_(ev)
-% Parse start trigger mode and key
-% Expected columns (from StartEventEditApp):
-%   - triggerMode : "auto" | "keyboard"
-%   - triggerKey  : key name string, e.g. "space", "return", "5%"
-%
-% Defaults:
-%   mode = "auto"
-%   key  = "space"
+    % Parse start trigger mode and key
+    % Expected columns (from StartEventEditApp):
+    %   - triggerMode : "auto" | "keyboard"
+    %   - triggerKey  : key name string, e.g. "space", "return", "5%"
+    %
+    % Defaults:s
+    %   mode = "auto"
+    %   key  = "space"
 
     startSpec = struct();
     startSpec.mode = "auto";
@@ -941,43 +905,43 @@ function startSpec = parseStartSpec_(ev)
 end
 
 function vis = presentVisualSti(win_, winRect_, ruleRow_, ctx_)
-%PRESENTVISUALSTI  Placeholder for visual stimulus creation/drawing.
-%
-% Inputs
-%   win, winRect : PTB window handle and rect
-%   ruleRow      : 1xN table row from rules.xlsx corresponding to ctx.identifier
-%   ctx          : struct with suggested fields:
-%       - identifier  : string
-%       - pID         : double
-%       - trialIndex  : double
-%       - tPlan       : double (scheduled onset time)
-%       - params      : struct (global settings)
-%
-% Output
-%   vis : struct with suggested fields:
-%       - drawFcn : function_handle, called as drawFcn(win) to draw on backbuffer
-%       - meta    : struct, for logging/debugging
-%
-% PSEUDOCODE (do not implement now):
-%   1) Validate ruleRow not empty.
-%   2) Read visual parameters from ruleRow (define your columns, e.g.):
-%        stimType      = ruleRow.visType        % "text"|"image"|"shape"|...
-%        imagePath     = ruleRow.visImagePath   % for image
-%        text          = ruleRow.visText        % for text
-%        posX,posY     = ruleRow.visPosX, visPosY   % normalized [0..1] or pixels
-%        sizeW,sizeH   = ruleRow.visSizeW, visSizeH
-%        colorRGB      = ruleRow.visColorR/G/B or a single "R,G,B" string
-%        etc.
-%   3) Precompute PTB resources if needed:
-%        - img = imread(imagePath)
-%        - tex = Screen('MakeTexture', win, img)
-%   4) Return a draw function:
-%        vis.drawFcn = @(win) <Screen draw calls, DrawFormattedText, Screen('DrawTexture'), ...>
-%   5) The scheduler (presentStimuli) will call:
-%        vis.drawFcn(win); Screen('Flip', win, ctx.tPlan - slack);
-%
-% NOTE:
-%   This function must NOT call Screen('Flip') itself in the intended design.
+    %PRESENTVISUALSTI  Placeholder for visual stimulus creation/drawing.
+    %
+    % Inputs
+    %   win, winRect : PTB window handle and rect
+    %   ruleRow      : 1xN table row from rules.xlsx corresponding to ctx.identifier
+    %   ctx          : struct with suggested fields:
+    %       - identifier  : string
+    %       - pID         : double
+    %       - trialIndex  : double
+    %       - tPlan       : double (scheduled onset time)
+    %       - params      : struct (global settings)
+    %
+    % Output
+    %   vis : struct with suggested fields:
+    %       - drawFcn : function_handle, called as drawFcn(win) to draw on backbuffer
+    %       - meta    : struct, for logging/debugging
+    %
+    % PSEUDOCODE (do not implement now):
+    %   1) Validate ruleRow not empty.
+    %   2) Read visual parameters from ruleRow (define your columns, e.g.):
+    %        stimType      = ruleRow.visType        % "text"|"image"|"shape"|...
+    %        imagePath     = ruleRow.visImagePath   % for image
+    %        text          = ruleRow.visText        % for text
+    %        posX,posY     = ruleRow.visPosX, visPosY   % normalized [0..1] or pixels
+    %        sizeW,sizeH   = ruleRow.visSizeW, visSizeH
+    %        colorRGB      = ruleRow.visColorR/G/B or a single "R,G,B" string
+    %        etc.
+    %   3) Precompute PTB resources if needed:
+    %        - img = imread(imagePath)
+    %        - tex = Screen('MakeTexture', win, img)
+    %   4) Return a draw function:
+    %        vis.drawFcn = @(win) <Screen draw calls, DrawFormattedText, Screen('DrawTexture'), ...>
+    %   5) The scheduler (presentStimuli) will call:
+    %        vis.drawFcn(win); Screen('Flip', win, ctx.tPlan - slack);
+    %
+    % NOTE:
+    %   This function must NOT call Screen('Flip') itself in the intended design.
 
     vis = struct();
     vis.meta = struct("identifier", string(ctx_.identifier), "pID", ctx_.pID, "trialIndex", ctx_.trialIndex);

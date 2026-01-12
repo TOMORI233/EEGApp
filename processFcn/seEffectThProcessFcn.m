@@ -1,26 +1,26 @@
-function seEffectThProcessFcn(app, rules, onset, offset, code, push, key)
-    % Delete empty trial
-    nTotal0 = length(onset);
-    trialsData = struct('onset',  onset, ...
-                        'offset', offset, ...
-                        'code',   code, ...
-                        'push',   push, ...
-                        'key',    key);
-    trialsData(cellfun(@isempty, onset)) = [];
-
+function seEffectThProcessFcn(app, rules, trialsData)
     % Clear axes
-    cla(app.ratioAxes);
+    cla(app.ax);
 
     % Behavior process
-    controlIdx = find(isnan(rules.deltaAmp)); % rules index of control group
-    trialAll = generalProcessFcn(trialsData, rules, controlIdx);
-    
+    controlCode = rules.code(isnan(rules.deltaAmp)); % rules index of control group
+    trialAll = mu_preprocess_generalProcessFcn(trialsData, rules);
+
     if isempty(trialAll)
         return;
     end
 
+    choice = mu_unwrapTrialEvents(trialAll, "type", "choice");
+    trialAll = mu_unwrapTrialEvents(trialAll, "type", "stimuli");
+
+    correct = (ismember([trialAll.code]', controlCode(:)) & [choice.key]' == 39) | ...
+              (~ismember([trialAll.code]', controlCode(:)) & [choice.key]' == 37);
+    trialAll = mu.addfield(trialAll, "correct", correct);
+    miss = [choice.key]' == 0;
+    trialAll = mu.addfield(trialAll, "miss", miss);
+
     nMiss = sum([trialAll.miss]);
-    nTotal = length(trialAll);
+    nTotal = numel(trialAll);
     trialAll([trialAll.miss]) = [];
     
     % Plot behavior
@@ -54,18 +54,18 @@ function seEffectThProcessFcn(app, rules, onset, offset, code, push, key)
     ratioHead = [ratioControl, ratioHead];
     ratioTail = [ratioControl, ratioTail];
 
-    plot(app.ratioAxes, deltaAmp, ratioMid, 'r.-', 'LineWidth', 2, "MarkerSize", 15, 'DisplayName', 'Middle');
-    set(app.ratioAxes, 'FontSize', 14);
-    hold(app.ratioAxes, "on");
-    plot(app.ratioAxes, deltaAmp, ratioHead, 'b.-', 'LineWidth', 2, "MarkerSize", 15, 'DisplayName', 'Head');
-    plot(app.ratioAxes, deltaAmp, ratioTail, 'k.-', 'LineWidth', 2, "MarkerSize", 15, 'DisplayName', 'Tail');
-    legend(app.ratioAxes, "Location", "best");
-    title(app.ratioAxes, ...
-          ['Total: ', num2str(nTotal), '/', num2str(nTotal0), ' | ', ...
+    plot(app.ax, deltaAmp, ratioMid, 'r.-', 'LineWidth', 2, "MarkerSize", 15, 'DisplayName', 'Middle');
+    set(app.ax, 'FontSize', 14);
+    hold(app.ax, "on");
+    plot(app.ax, deltaAmp, ratioHead, 'b.-', 'LineWidth', 2, "MarkerSize", 15, 'DisplayName', 'Head');
+    plot(app.ax, deltaAmp, ratioTail, 'k.-', 'LineWidth', 2, "MarkerSize", 15, 'DisplayName', 'Tail');
+    legend(app.ax, "Location", "best");
+    title(app.ax, ...
+          ['Total: ', num2str(nTotal), ' | ', ...
            'Miss: ', num2str(nMiss)]);
-    xlabel(app.ratioAxes, 'Difference in amplitude');
-    ylabel(app.ratioAxes, 'Push for difference ratio');
-    set(app.ratioAxes, "XLimitMethod", "tight");
-    ylim(app.ratioAxes, [0, 1]);
+    xlabel(app.ax, 'Difference in amplitude');
+    ylabel(app.ax, 'Push for difference ratio');
+    set(app.ax, "XLimitMethod", "tight");
+    ylim(app.ax, [0, 1]);
     drawnow;
 end

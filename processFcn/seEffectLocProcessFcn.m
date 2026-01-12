@@ -1,33 +1,33 @@
-function seEffectLocProcessFcn(app, rules, onset, offset, code, push, key)
-    % Delete empty trial
-    nTotal0 = length(onset);
-    trialsData = struct('onset',  onset, ...
-                        'offset', offset, ...
-                        'code',   code, ...
-                        'push',   push, ...
-                        'key',    key);
-    trialsData(cellfun(@isempty, onset)) = [];
-
+function seEffectLocProcessFcn(app, rules, trialsData)
     % Clear axes
-    cla(app.ratioAxes);
+    cla(app.ax);
 
     % Behavior process
-    controlIdx = find(isnan(rules.deltaAmp)); % rules index of control group
-    trialAll = generalProcessFcn(trialsData, rules, controlIdx);
+    controlCode = rules.code(isnan(rules.deltaAmp)); % rules index of control group
+    trialAll = mu_preprocess_generalProcessFcn(trialsData, rules);
 
     if isempty(trialAll)
         return;
     end
-    
+
+    stimuli = mu_unwrapTrialEvents(trialAll, "type", "stimuli");
+    choice = mu_unwrapTrialEvents(trialAll, "type", "choice");
+
+    correct = (ismember([stimuli.code]', controlCode(:)) & [choice.key]' == 39) | ...
+              (~ismember([stimuli.code]', controlCode(:)) & [choice.key]' == 37);
+    trialAll = mu.addfield(trialAll, "correct", correct);
+    miss = [choice.key]' == 0;
+    trialAll = mu.addfield(trialAll, "miss", miss);
+
     nMiss = sum([trialAll.miss]);
-    nTotal = length(trialAll);
+    nTotal = numel(trialAll);
     trialAll([trialAll.miss]) = [];
     
     % Plot behavior
-    pos = unique([trialAll.pos]);
+    pos = unique([stimuli.pos]);
     pos(isnan(pos)) = [];
 
-    trialsControl = trialAll(isnan([trialAll.pos]));
+    trialsControl = trialAll(isnan([stimuli.pos]));
     
     ratio = zeros(1, length(pos));
     for lIndex = 1:length(pos)
@@ -35,14 +35,14 @@ function seEffectLocProcessFcn(app, rules, onset, offset, code, push, key)
         ratio(lIndex) = sum([temp.correct]) / length(temp);
     end
     
-    plot(app.ratioAxes, pos, ratio, "k.-", "LineWidth", 2, "MarkerSize", 20);
-    set(app.ratioAxes, 'FontSize', 14);
-    xlabel(app.ratioAxes, 'Normalized change position in percentage (%)');
-    ylabel(app.ratioAxes, 'Push for difference ratio');
-    ylim(app.ratioAxes, [0, 1]);
-    xlim(app.ratioAxes, [0, 100]);
-    title(app.ratioAxes, ...
-          ['Total: ', num2str(nTotal), '/', num2str(nTotal0), ' | ', ...
+    plot(app.ax, pos, ratio, "k.-", "LineWidth", 2, "MarkerSize", 20);
+    set(app.ax, 'FontSize', 14);
+    xlabel(app.ax, 'Normalized change position in percentage (%)');
+    ylabel(app.ax, 'Push for difference ratio');
+    ylim(app.ax, [0, 1]);
+    xlim(app.ax, [0, 100]);
+    title(app.ax, ...
+          ['Total: ', num2str(nTotal), ' | ', ...
            'Miss: ', num2str(nMiss), ' | ', ...
            'Control: ', num2str(sum([trialsControl.correct])), '/', num2str(length(trialsControl))]);
     drawnow;
