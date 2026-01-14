@@ -53,19 +53,19 @@ function rulesGenerator(soundDir, ...            % directory path of sound files
 
 %% Parse inputs
 arguments
-    soundDir    {mustBeFolder, mustBeTextScalar}
-    rulesPath   {mustBeTextScalar}
-    pID         (1,1) double {mustBePositive, mustBeInteger}
-    node0Hint   {mustBeTextScalar}
-    nodeHint    {mustBeTextScalar}
-    protocol    {mustBeTextScalar}
+    soundDir  (1,1) string {mustBeFolder}
+    rulesPath (1,1) string
+    pID       (1,1) double {mustBePositive, mustBeInteger}
+    node0Hint (1,1) string
+    nodeHint  (1,1) string
+    protocol  (1,1) string
 
     opts.nRepeat    (:,1) double = []
-    opts.processFcn (1,1) function_handle
+    opts.processFcn (1,1) function_handle = function_handle.empty
     opts.forceOpt   {mu.OptionState.validate} = mu.OptionState.Off
-    opts.eventFlow  {mustBeFile, mustBeTextScalar} = fullfile(fileparts(mfilename("fullpath")), "config", sprintf('eventFlow_%s.mat', apType))
-    opts.identifier {mustBeText} = ''
-    opts.group      {mustBeText} = ''
+    opts.eventFlow  (1,1) string = ""   % leave empty by default; user should pass it if needed
+    opts.identifier = ""
+    opts.group      = ""
 end
 
 % sound files
@@ -117,6 +117,9 @@ forceOpt = mu.OptionState.create(opts.forceOpt).toLogical;
 
 % event flow table path
 eventFlow = opts.eventFlow;
+if ~isempty(eventFlow)
+    assert(isfile(eventFlow), "Invalid event flow file");
+end
 eventFlow = {repmat({string(eventFlow)}, [n, 1])};
 
 %% Parse parameters from sound names
@@ -198,7 +201,7 @@ if exist(fullfile(pathstr, strcat(name, ext)), "file")
         writetable([tb0(1:insertIdx, :); tb2Insert; tb0(insertIdx + 1:end, :)], rulesPath, "WriteMode", "replacefile");
     catch ME
 
-        if strcmpi(forceOpt, "off")
+        if forceOpt
             uialert({ME.message; ''; '已另存为尾缀为_pID-x.xlsx文件'});
 
             % Merge to former rules file (merge common parameters only)
