@@ -26,7 +26,8 @@
             {"name": "nRepeat", "kind": "namevalue", "type":  [["@(x) isempty(x) || isnan(x)"], ["integer", "positive", "vector"]]},
             {"name": "processFcn", "kind": "namevalue", "type":  [["@(x) isempty(x)"], ["function_handle", "scalar"]]},
             {"name": "forceOpt", "kind": "namevalue", "type":  ["choices = {'on', 'off'}"]},
-            {"name": "group", "kind": "namevalue", "type":  [["char"], ["string"]]}
+            {"name": "group", "kind": "namevalue", "type":  [["char"], ["string"]]},
+            {"name": "eventFlow", "kind": "namevalue", "type":  ["file=*.mat"]}
         ]
     }
 }

@@ -15,7 +15,7 @@ fsDevice  = params.fs;
 % ----------------------------- defaults -----------------------------
 if ~isfield(params,'nRepeat')          , params.nRepeat = 1;               end
 if ~isfield(params,'fs')               , params.fs = 384e3;                end
-if ~isfield(params,'volumn')           , params.volumn = 0.3;              end
+if ~isfield(params,'volume')           , params.volume = 0.3;              end
 if ~isfield(params,'useSettingnRepeat'), params.useSettingnRepeat = false; end
 if ~isfield(params,'triggerType')      , params.triggerType = "None";      end
 if ~isfield(params,'address')          , params.address = hex2dec('378');  end
@@ -109,7 +109,7 @@ reqlatencyclass = 2;
 nChs = 2;
 optMode = 1;
 pahandle = PsychPortAudio('Open', [], optMode, reqlatencyclass, fsDevice, nChs);
-PsychPortAudio('Volume', pahandle, params.volumn);
+PsychPortAudio('Volume', pahandle, params.volume);
 
 % To prevent burst sound caused by sudden change from zero
 PsychPortAudio('FillBuffer', pahandle, [zeros(1, 10); zeros(1, 10)]);
@@ -137,6 +137,16 @@ KbGet(32, 20); % Wait for user start
 sendMarker_(triggerType, ioObj, address, 1); % task start
 WaitSecs(2);
 
+% flush key board press events
+keys = zeros(1,256);
+keys(KbName('space'))  = 1;
+keys(KbName('ESCAPE')) = 1;
+KbQueueRelease(-1);
+KbQueueCreate(-1, keys);
+KbQueueStart(-1);
+KbQueueFlush(-1);
+
+% for exp termination
 abortFlag = false;
 
 t0 = GetSecs;
@@ -165,8 +175,8 @@ for trlIdx = 1:ntrial
     % - auto    : tTrial0 = tReady (the moment trial is allowed to start)
     % - keyboard: wait for subject keypress after tReady, then tTrial0 = keypress time
     if startSpec.mode == "keyboard"
-        % optional: ensure clean edge detection
-        KbReleaseWait;
+        KbQueueFlush(-1);  % clear pending key events (clean edge)
+
         [tKey, keyCode] = KbGet(startSpec.keycode, inf);
         sendMarker_(triggerType, ioObj, address, 1); % trial start
     
@@ -204,7 +214,7 @@ for trlIdx = 1:ntrial
                 ruleRow = sch.ruleRow{s};
 
                 % Placeholder: build a draw plan (not implemented)
-                vis = presentVisualSti(win, winRect, ruleRow, struct( ...
+                vis = presentVisualSti_(win, winRect, ruleRow, struct( ...
                     "identifier", id, ...
                     "pID", pID, ...
                     "trialIndex", trlIdx, ...
@@ -225,7 +235,7 @@ for trlIdx = 1:ntrial
 
             else
                 % ---------------- auditory playback ----------------
-                wave = pickWave_(audioDB, id);
+                wave = pickWave_(audioDB, sch.markerCode(s));
                 PsychPortAudio('FillBuffer', pahandle, wave);
                 evtRec(sch.evtIndex(s)).tStart = PsychPortAudio('Start', pahandle, 1, tPlan0, 1);
 
@@ -244,13 +254,14 @@ for trlIdx = 1:ntrial
             % wait for keyboard response (KbGet)
             % ================================
             % Use remaining window from keyboard release
-            KbReleaseWait; % ensure edge detection clean
+
+            KbQueueFlush(-1);  % clear pending key events (clean edge)
+
             tNow = GetSecs;
             if tNow < tPlan0
                 WaitSecs('UntilTime', tPlan0);
             end
-            limit = max(0, tPlan1 - tNow);
-            [secsPress, keyPress] = KbGet(validKeycode, limit);
+            [secsPress, keyPress] = KbGet(validKeycode, choiceWin);
 
             % marker for response
             if keyPress ~= 0
@@ -285,20 +296,9 @@ if ~abortFlag
     WaitSecs(4);
 
     if pID == app.pIDList(end)
-        app.AddSubjectButton.Enable = 'on';
-        app.SetParamsButton.Enable = 'on';
-        app.StartButton.Enable = 'off';
-        app.NextButton.Enable = 'off';
-        app.StopButton.Enable = 'off';
-        app.PhaseSelectPanel.Enable = 'on';
-        app.DataPathPanel.Enable = 'on';
-        app.RealtimemonitorButton.Enable = 'on';
-        app.StateLabel.Text = 'All experiments are done!';
+        app.onAllExpDone();
     else
-        app.NextButton.Enable = 'on';
-        app.RealtimemonitorButton.Enable = 'on';
-        app.timerInit;
-        start(app.mTimer);
+        app.onOnePhaseDone();
     end
 
     drawnow;
@@ -570,44 +570,135 @@ function ITI = buildITI_(ev, ntrial)
 end
 
 function audioDB = preloadAudio_(rl, fsTarget)
-    % audioDB(id) = cell array of 2xN wave matrices ready for PsychPortAudio FillBuffer
-    audioDB = containers.Map('KeyType','char','ValueType','any');
-    
-    for i = 1:height(rl)
-        id = char(rl.identifier(i));
-        fp = char(rl.filePath(i));
-    
-        if isempty(id) || isempty(fp), continue; end
+%PRELOADAUDIO_  Preload wav files defined in rules table.
+%
+% OUTPUT audioDB (struct)
+%   audioDB.items      : struct array, one per rules row with fields:
+%       .rulesRow      : row index in rl
+%       .identifier    : char
+%       .code          : double
+%       .filePath      : char
+%       .wave          : 2 x N double (ready for PsychPortAudio FillBuffer)
+%       .nSample       : number of samples (N)
+%       .duration      : seconds (N / fsTarget)
+%
+%   audioDB.byId       : containers.Map(id -> uint32 indices into audioDB.items)
+%   audioDB.byCode     : containers.Map(codeStr -> uint32 index into audioDB.items)
+%   audioDB.fsTarget   : target sampling rate (Hz)
+%
+% NOTES
+%   - If multiple rows share same code, byCode keeps the first one (warn).
+%   - If rl.identifier is empty, that row is skipped (can be changed).
+%   - rl.filePath must exist and point to .wav
+%
+% REQUIREMENTS
+%   rl must contain columns: identifier, filePath, code
+
+    mustHave = ["identifier","filePath","code"];
+    for k = 1:numel(mustHave)
+        assert(ismember(mustHave(k), string(rl.Properties.VariableNames)), ...
+            "rules table missing required field: %s", mustHave(k));
+    end
+
+    audioDB = struct();
+    audioDB.items    = struct('rulesRow',{},'identifier',{},'code',{},'filePath',{}, ...
+                              'wave',{},'nSample',{},'duration',{});
+    audioDB.byId     = containers.Map('KeyType','char','ValueType','any');   % id -> indices
+    audioDB.byCode   = containers.Map('KeyType','char','ValueType','any');   % codeStr -> index
+    audioDB.fsTarget = fsTarget;
+
+    % choose resampler (prefer mu.resampledata if available)
+    useMuResample = exist('mu.resampledata','file') == 2;
+
+    for r = 1:height(rl)
+        id = char(string(rl.identifier(r)));
+        fp = char(string(rl.filePath(r)));
+
+        if isempty(strtrim(id)) || isempty(strtrim(fp))
+            continue;
+        end
         assert(isfile(fp), "Sound file not found: %s", fp);
-    
+
+        % read
         [y, fs0] = audioread(fp);
         if size(y,2) > 2
             error("Sound channels >2 not supported: %s", fp);
         end
+
+        % resample if needed
         if fs0 ~= fsTarget
-            y = resample(y, fsTarget, fs0);
+            if useMuResample
+                y = mu.resampledata(y, fs0, fsTarget);
+            else
+                y = resample(y, fsTarget, fs0);
+            end
         end
-    
-        % Convert to 2 x N for PTB
+
+        % to 2 x N (PTB expects [nCh x nSample])
         if size(y,2) == 1
             y2 = repmat(y(:)', 2, 1);
         else
             y2 = y'; % 2 x N
         end
-    
-        if ~isKey(audioDB, id)
-            audioDB(id) = {y2};
+
+        % code
+        codeVal = rl.code(r);
+        if iscell(codeVal), codeVal = codeVal{1}; end
+        codeVal = double(codeVal);
+
+        % append item
+        idx = uint32(numel(audioDB.items) + 1);
+        audioDB.items(idx).rulesRow  = r;
+        audioDB.items(idx).identifier= id;
+        audioDB.items(idx).code      = codeVal;
+        audioDB.items(idx).filePath  = fp;
+        audioDB.items(idx).wave      = y2;
+        audioDB.items(idx).nSample   = size(y2,2);
+        audioDB.items(idx).duration  = size(y2,2) / fsTarget;
+
+        % map: byId
+        if ~isKey(audioDB.byId, id)
+            audioDB.byId(id) = idx;
         else
-            audioDB(id) = [audioDB(id), {y2}];
+            audioDB.byId(id) = [audioDB.byId(id), idx];
+        end
+
+        % map: byCode (string key because containers.Map KeyType doesn't support double reliably across versions)
+        ckey = sprintf('%.0f', codeVal);
+        if ~isKey(audioDB.byCode, ckey)
+            audioDB.byCode(ckey) = idx;
+        else
+            % keep first, warn
+            warning("Duplicate code=%s found in rules. Keeping first for byCode. (file=%s)", ckey, fp);
         end
     end
 end
 
-function wave = pickWave_(audioDB, id)
-    id = char(string(id));
-    assert(isKey(audioDB, id), "No audio wave found for identifier '%s'.", id);
-    waves = audioDB(id);
-    wave = waves{randi(numel(waves))};
+function wave = pickWave_(audioDB, code)
+%PICKWAVE_  Pick a wave by marker code (rules.code).
+%
+% Inputs:
+%   audioDB : struct returned by preloadAudio_ (must contain .byCode and .items)
+%   code    : numeric scalar (marker code)
+%
+% Outputs:
+%   wave : 2 x N double, ready for PsychPortAudio FillBuffer
+
+    assert(isstruct(audioDB) && isfield(audioDB,"byCode") && isfield(audioDB,"items"), ...
+        "audioDB must contain fields .byCode and .items");
+    assert(isscalar(code) && isnumeric(code) && isfinite(code), ...
+        "code must be a finite numeric scalar.");
+
+    % containers.Map key uses string
+    ckey = sprintf('%.0f', double(code));
+
+    assert(isKey(audioDB.byCode, ckey), "No wave found for code=%s.", ckey);
+
+    idx = audioDB.byCode(ckey);
+    assert(isscalar(idx), "Replicated keys found.");
+
+    item = audioDB.items(idx);
+    wave = item.wave;
 end
 
 function [choiceWin, validKeycode] = parseChoiceSpec_(ev)
@@ -748,7 +839,6 @@ function mon = initRealtimeMonitor_(app_, rules_)
         return
     end
     
-    fcnStr = "";
     try
         v = rules_.processFcn(1);
         if iscell(v), v = v{1}; end
@@ -904,7 +994,7 @@ function startSpec = parseStartSpec_(ev)
     end
 end
 
-function vis = presentVisualSti(win_, winRect_, ruleRow_, ctx_)
+function vis = presentVisualSti_(win_, winRect_, ruleRow_, ctx_)
     %PRESENTVISUALSTI  Placeholder for visual stimulus creation/drawing.
     %
     % Inputs

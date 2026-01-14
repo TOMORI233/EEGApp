@@ -75,7 +75,7 @@ mkdir(['sounds\', num2str(pID)]);
 % 生成声音时按一定顺序
 % 文件命名 ord_param1-param1Val_param2-param2Val_...
 % ord 001, 002, ..., 249, 250
-ord = arrayfun(@(x) strrep(x, ' ', '0'), num2str((1:250)'));
+ord = compose('%03d', 1:100)';
 for index = 1:length(nSounds)
     filename = [ord(index, :), '_param1-', num2str(param1Val), '_param2', num2str(param2Val), '_', otherParamsNameValue, '.wav'];
     audiowrite(fullfile(['sounds\', num2str(pID)], filename), y{index}, fs);
