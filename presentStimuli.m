@@ -132,11 +132,6 @@ startIdx = find(evts.kind=="start", 1, "first");
 assert(~isempty(startIdx), "Start event is required in event flow.");
 
 % ----------------------------- trial loop -----------------------------
-disp("Waiting for [SPACE] to be pressed...");
-KbGet(32, 20); % Wait for user start
-sendMarker_(triggerType, ioObj, address, 1); % task start
-WaitSecs(2);
-
 % flush key board press events
 keys = zeros(1,256);
 keys(KbName('space'))  = 1;
@@ -146,11 +141,17 @@ KbQueueCreate(-1, keys);
 KbQueueStart(-1);
 KbQueueFlush(-1);
 
+disp("Waiting for [SPACE] to be pressed...");
+KbGet(32, 20); % Wait for user start
+sendMarker_(triggerType, ioObj, address, 1); % task start
+WaitSecs(2);
+
 % for exp termination
 abortFlag = false;
 
 t0 = GetSecs;
 tPrevEnd = t0;
+KbQueueFlush(-1);
 
 for trlIdx = 1:ntrial
 
@@ -272,6 +273,12 @@ for trlIdx = 1:ntrial
             
         end
 
+        drawnow limitrate
+        if app.terminate
+            abortFlag = true;
+            break;
+        end
+
     end
 
     % ---- estimate trial end ----
@@ -284,9 +291,7 @@ for trlIdx = 1:ntrial
     % ---- update real-time monitor ----
     updateRealtimeMonitor_(mon, app, rules, trialsData);
 
-    drawnow limitrate
-    if strcmp(app.status, 'stop')
-        abortFlag = true;
+    if abortFlag
         break;
     end
 
