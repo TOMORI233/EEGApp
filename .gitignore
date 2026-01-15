@@ -20,8 +20,7 @@ Data/
 #ignore MAT
 *.mat
 **/*.mat
-!config/eventFlow_active.mat
-!config/eventFlow_passive.mat
+!config/eventFlow_default.mat
 
 #ignore following files;
 *.asv

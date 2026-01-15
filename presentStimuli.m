@@ -830,9 +830,9 @@ function h = simpleHash_(s)
     h = mod(sum(x .* (1:numel(x))), 100);
 end
     
-function sendMarker_(triggerType_, ioObj_, address_, code_)
+function sendMarker_(code_)
     try
-        mTrigger(char(triggerType_), ioObj_, uint8(code_), address_);
+        app.sendCode(uint8(code_));
     catch ME
         fprintf(2, "[TriggerError] %s\n", ME.message);
     end
