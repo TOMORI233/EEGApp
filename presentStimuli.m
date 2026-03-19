@@ -143,7 +143,7 @@ KbQueueFlush(-1);
 
 disp("Waiting for [SPACE] to be pressed...");
 KbGet(32, 20); % Wait for user start
-sendMarker_(triggerType, ioObj, address, 1); % task start
+sendMarker_(app, 1); % task start
 WaitSecs(2);
 
 % for exp termination
@@ -179,7 +179,7 @@ for trlIdx = 1:ntrial
         KbQueueFlush(-1);  % clear pending key events (clean edge)
 
         [tKey, keyCode] = KbGet(startSpec.keycode, inf);
-        sendMarker_(triggerType, ioObj, address, 1); % trial start
+        sendMarker_(app, 1); % trial start
     
         tTrial0 = tKey;
     
@@ -232,7 +232,7 @@ for trlIdx = 1:ntrial
                 %   evtRec(sch.evtIndex(s)).tStart = Screen('Flip', win, tPlan0 - slack);
 
                 % ---- marker at event onset ----
-                sendMarker_(triggerType, ioObj, address, sch.markerCode(s));
+                sendMarker_(app, sch.markerCode(s));
 
             else
                 % ---------------- auditory playback ----------------
@@ -241,7 +241,7 @@ for trlIdx = 1:ntrial
                 evtRec(sch.evtIndex(s)).tStart = PsychPortAudio('Start', pahandle, 1, tPlan0, 1);
 
                 % ---- marker at event onset ----
-                sendMarker_(triggerType, ioObj, address, sch.markerCode(s));
+                sendMarker_(app, sch.markerCode(s));
 
                 % code: use rules.code for this specific row
                 rr = sch.ruleRow{s};
@@ -266,7 +266,7 @@ for trlIdx = 1:ntrial
 
             % marker for response
             if keyPress ~= 0
-                sendMarker_(triggerType, ioObj, address, find(keyPress == validKeycode) + 1);
+                sendMarker_(app, find(keyPress == validKeycode) + 1);
                 evtRec(sch.evtIndex(s)).tKeypress = secsPress;
                 evtRec(sch.evtIndex(s)).key = keyPress;
             end
@@ -353,6 +353,7 @@ function [ev, rl, info] = reconcileIdentifiers_(ev, rl)
     % Collect identifiers from event flow
     idsFlow = unique(string(ev.identifier(ev.kind=="stimuli" | ev.kind=="cue")), 'stable');
     idsFlow(idsFlow=="") = [];
+    pID = rl.pID(1);
     
     % If none in flow: enforce single stimulus + optional single cue
     if isempty(idsFlow)
@@ -830,7 +831,7 @@ function h = simpleHash_(s)
     h = mod(sum(x .* (1:numel(x))), 100);
 end
     
-function sendMarker_(code_)
+function sendMarker_(app, code_)
     try
         app.sendCode(uint8(code_));
     catch ME

@@ -43,7 +43,7 @@ arguments
     opts.nRepeat    (:,1) double = []
     opts.processFcn = []
     opts.forceOpt   {mu.OptionState.validate} = mu.OptionState.Off
-    opts.eventFlow  (1,1) string = ""   % leave empty by default; user should pass it if needed
+    opts.eventFlow  {mustBeTextScalar} = ""   % leave empty by default; user should pass it if needed
     opts.identifier = ""
     opts.group      = ""
 end
@@ -153,9 +153,11 @@ end
 
 function col = expandToN(x, n, name)
     % Expand scalar text to n×1 string, or validate vector length.
-    if ismissing(x) || (isstring(x) && strlength(x)==0)
-        col = repmat("", n, 1);
-        return;
+    if mu.isTextScalar(x)
+        if ismissing(x) || (isstring(x) && strlength(x)==0)
+            col = repmat("", n, 1);
+            return;
+        end
     end
     
     x = string(x);
