@@ -66,7 +66,7 @@ io64(ioObj, address, 0);
 
 #### 4. App使用
 
-1. 编辑`rules.xlsx`，请务必按loadSounds导出的顺序填写，务必，务必，务必，务必！（强烈建议所有文件以数字`1_, 2_, 3_, ...`开头以便按一定顺序读取，对于超过10的请使用`001, 002, ..., 100, 101, ...`开头，MATLAB读取文件的文件名排序为数字-大写字母-小写字母）
+1. 编辑`rules.xlsx`，请务必按loadSounds导出的顺序填写，务必，务必，务必，务必！（强烈建议所有文件以数字`001_, 002_, 003_, ...`开头以便按一定顺序读取，对于超过10的请使用`001, 002, ..., 100, 101, ...`开头，MATLAB读取文件的文件名排序为数字-大写字母-小写字母）
 
 ```matlab
 pID = 101;
@@ -94,8 +94,8 @@ nRepeat = 2;
 rulesGenerator(fullfile("sounds", num2str(pID)),    ... sound file path
                "rules\start-end effect\rules.xlsx", ... rule file path
                pID,                                 ... protocol ID
- 			   "Start-End Effect",                  ... project name
-			   "Phase 0 - pre",                     ... phase name
+ 			   "Start-End Effect",                  ... project/experiment name
+			   "Session 1 - pre",                   ... experimental session name
 			   "SE pre",                            ... protocol name
 			   "nRepeat", nRepeat,                  ... repeat times of trials
 			   "eventFlow", eventFlow,              ... event flow path
@@ -117,19 +117,35 @@ rulesGenerator(fullfile("sounds", num2str(pID)),    ... sound file path
 
 1. 可以在参数设置中勾选`force`以将该重复次数应用于所有声音。
 
-3. pID应小于10000（父节点的NodeData为10000+i，其中i为父节点序号）。
+2. pID应小于10000（父节点的NodeData为10000+i，其中i为父节点序号）。
 
-4. 建议把自己的protocol对应的rules建一个文件夹放在`rules\`路径下，如`rules\offset MSTI\`
+3. 建议把自己的protocol对应的rules建一个文件夹放在`rules\`路径下，如`rules\offset MSTI\`
 
-5. 每个人分配100个可用pID，请在`sounds\`文件夹下创建自己`pID\`的声音文件夹，请勿越界使用。
+4. 每个人分配100个可用pID，请在`sounds\`文件夹下创建自己`pID\`的声音文件夹，请勿越界使用。
 
-6. 在有行为的实验中，请保证ISI > sound duration + choiceWin + 0.5，否则在Miss时可能会出现到下一个trial的计时不准。
+4. 可以生成实验前置提示音放置于`sounds\hint\`文件夹下，命名为`[pID].wav`或`[pID].mp3`，对应pID实验开始前会自动播放。
+
+5. 如果event flow中有多个刺激的identifier $A_{i}$ ($i=1,...,m$)，其中$A_i$包含$a_{i}$种刺激，每个刺激重复次数为$n_{ij}$ ($j=1,...,a_i$​)，则未指定group情况下总trial数为
+   $$
+   \prod_{i=1}^{m}\prod_{j=1}^{a_{i}}n_{ij}
+   $$
+   即全部乘起来，请在设计时注意trial数的计算，最好为每个trial生成单独完整的声音，非必要不要使用这种组合的方式。
+
+6. 在每个trial中，相同的identifier所呈现的刺激是一样的，可用于呈现oddball刺激，注意trial数的计算。
+
+7. 如果需要使用cue，请在rules.xlsx中也为cue填写参数（如果使用rulesGenerator自动生成，则需要将cue文件放置于对应pID文件夹下），并标注identifier（如C1）。
 
 #### 6. Update Log
 
 请将每次更新内容**置顶**写在这里，标注日期、修改者和兼容性（**Incompatible**/Compatible），对每条修改请标注修改类型（Add/Modify/Delete/Debug）。若为Incompatible，请给出修改方案。
 
-- 2026/01/11 by XHX - **Incompatible**
+- 2026/03/20 by XHX - Compatible
+
+  | Type           | Target                              | Content                                                      |
+  | -------------- | ----------------------------------- | ------------------------------------------------------------ |
+  | Modify & Debug | `mainApp.mlapp`, `presentStimuli.m` | 将保存数据操作注册为刺激呈现函数结束时执行的回调。如果通过被试按键开启trial的方式进行，可以按ESC强制停止。 |
+
+- 2026/01/11 by XHX - **Incompatible** （重要更新）
 
   | Type   | Target                        | Content                                                      |
   | ------ | ----------------------------- | ------------------------------------------------------------ |

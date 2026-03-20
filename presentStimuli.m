@@ -174,7 +174,12 @@ for trlIdx = 1:ntrial
     if startSpec.mode == "keyboard"
         KbQueueFlush(-1);  % clear pending key events (clean edge)
 
-        [tKey, keyCode] = KbGet(startSpec.keycode, inf);
+        [tKey, keyCode] = KbGet([startSpec.keycode, 27], inf); % esc for terminate
+        if keyCode == 27
+            abortFlag = true;
+            app.terminateExp();
+            break;
+        end
         sendMarker_(app, 1); % trial start
     
         tTrial0 = tKey;
