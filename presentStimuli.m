@@ -21,10 +21,6 @@ if ~isfield(params,'triggerType')      , params.triggerType = "None";      end
 if ~isfield(params,'address')          , params.address = hex2dec('378');  end
 if ~isfield(params,'ioObj')            , params.ioObj = [];                end
 
-triggerType = string(params.triggerType);
-ioObj       = params.ioObj;
-address     = params.address;
-
 % ----------------------------- current pID -----------------------------
 pID = app.pIDList(app.pIDIndex);
 
@@ -121,7 +117,7 @@ win = [];
 winRect = [];
 slack = 0;
 
-cleaner = onCleanup(@()cleanup_());
+cleaner = onCleanup(@()cleanup_(app));
 
 % ----------------------------- pre-parse choice spec -----------------------------
 [choiceWin, validKeycode] = parseChoiceSpec_(evts);
@@ -297,6 +293,9 @@ for trlIdx = 1:ntrial
 
 end
 
+% remove empty trials if terminated
+app.trialsData = trialsData([trialsData.trialIndex]);
+
 if ~abortFlag
     WaitSecs(4);
 
@@ -316,10 +315,15 @@ end
 %                              Helpers
 % =====================================================================
 
-function cleanup_()
+function cleanup_(app)
+    % close audio
     try PsychPortAudio('Close'); catch, end
-    % if visual implemented:
+
+    % if visual implemented
     try Screen('CloseAll'); catch, end
+
+    % save data
+    app.saveData();
 end
 
 function ev = normalizeEventFlow_(ev)
