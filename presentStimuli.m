@@ -138,7 +138,7 @@ KbQueueStart(-1);
 KbQueueFlush(-1);
 
 disp("Waiting for [SPACE] to be pressed...");
-KbGet(32, 20); % Wait for user start
+KbGet(KbName('space'), 20); % Wait for user start
 sendMarker_(app, 1); % task start
 WaitSecs(2);
 
@@ -174,8 +174,8 @@ for trlIdx = 1:ntrial
     if startSpec.mode == "keyboard"
         KbQueueFlush(-1);  % clear pending key events (clean edge)
 
-        [tKey, keyCode] = KbGet([startSpec.keycode, 27], inf); % esc for terminate
-        if keyCode == 27
+        [tKey, keyCode] = KbGet([startSpec.keycode, KbName('esc')], inf); % ESC for terminate
+        if keyCode == KbName('esc')
             abortFlag = true;
             app.terminateExp();
             break;
@@ -249,6 +249,9 @@ for trlIdx = 1:ntrial
                 if istable(rr) && ~isempty(rr)
                     evtRec(sch.evtIndex(s)).code = rr.code(1);
                 end
+
+                % ---- wait for end of sound ----
+                [~, ~, ~, tPrevEnd] = PsychPortAudio('Stop', pahandle, 1);
             end
 
         elseif k=="choice"
@@ -272,6 +275,8 @@ for trlIdx = 1:ntrial
                 evtRec(sch.evtIndex(s)).key = keyPress;
             end
             
+            % ---- estimate trial end ----
+            tPrevEnd = GetSecs;
         end
 
         drawnow limitrate
@@ -281,9 +286,6 @@ for trlIdx = 1:ntrial
         end
 
     end
-
-    % ---- estimate trial end ----
-    tPrevEnd = GetSecs;
 
     % ---- store trial data ----
     trialsData(trlIdx).trialIndex = trlIdx;
