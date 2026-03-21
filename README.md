@@ -115,7 +115,7 @@ rulesGenerator(fullfile("sounds", num2str(pID)),    ... sound file path
 
 #### 5. 注意事项：
 
-1. 可以在参数设置中勾选`force`以将该重复次数应用于所有声音。
+1. 可以在参数设置中勾选`override`以将该重复次数应用于所有声音。
 
 2. pID应小于10000（父节点的NodeData为10000+i，其中i为父节点序号）。
 
@@ -133,7 +133,7 @@ rulesGenerator(fullfile("sounds", num2str(pID)),    ... sound file path
 
 6. 在每个trial中，相同的identifier所呈现的刺激是一样的，可用于呈现oddball刺激，注意trial数的计算。
 
-7. 如果需要使用cue，请在rules.xlsx中也为cue填写参数（如果使用rulesGenerator自动生成，则需要将cue文件放置于对应pID文件夹下），并标注identifier（如C1）。
+7. 如果需要使用cue，请在rules.xlsx中也为cue填写参数（如果使用rulesGenerator自动生成，则需要将cue文件放置于对应pID文件夹下），并标注identifier（如C1），并将cue的重复次数设置为1。
 
 #### 6. Update Log
 
