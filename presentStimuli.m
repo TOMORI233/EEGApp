@@ -17,9 +17,6 @@ if ~isfield(params,'nRepeat')          , params.nRepeat = 1;               end
 if ~isfield(params,'fs')               , params.fs = 384e3;                end
 if ~isfield(params,'volume')           , params.volume = 0.3;              end
 if ~isfield(params,'useSettingnRepeat'), params.useSettingnRepeat = false; end
-if ~isfield(params,'triggerType')      , params.triggerType = "None";      end
-if ~isfield(params,'address')          , params.address = hex2dec('378');  end
-if ~isfield(params,'ioObj')            , params.ioObj = [];                end
 
 % ----------------------------- current pID -----------------------------
 pID = app.pIDList(app.pIDIndex);
@@ -84,12 +81,16 @@ audioDB = preloadAudio_(rules, params.fs);
 
 % ----------------------------- record trial info -----------------------------
 temp = cell(size(evts, 1), 1);
-evtTemplate = struct("type", temp, "tStart", temp, ...
-    "identifier", temp, "code", temp, ...
-    "tKeypress", temp, "key", temp);
+evtTemplate = struct("type",       temp, ...
+                     "tStart",     temp, ...
+                     "identifier", temp, ...
+                     "code",       temp, ...
+                     "tKeypress",  temp, ...
+                     "key",        temp);
 
 temp = cell(ntrial, 1);
-trialsData = struct("trialIndex", temp, "events", temp);
+trialsData = struct("trialIndex", temp, ...
+                    "events", temp);
 
 % ----------------------------- hint sound before experiment -----------------------------
 % Each protocol may deliver a voice notice.
