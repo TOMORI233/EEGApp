@@ -182,7 +182,6 @@ for trlIdx = 1:ntrial
             app.terminateExp();
             break;
         end
-        sendMarker_(app, 1); % trial start
     
         tTrial0 = tKey;
     
@@ -194,6 +193,8 @@ for trlIdx = 1:ntrial
         tTrial0 = tReady;
         evtRec(startIdx).tStart = tReady;
     end
+
+    sendMarker_(app, 1); % trial start
 
     % ---- generate per-event jittered schedule ----
     sch = compileSchedule_(evts, trialMat(trlIdx,:), idInfo, rules, tTrial0);
@@ -340,26 +341,51 @@ function ev = normalizeEventFlow_(ev)
     for nm = need
         assert(ismember(nm, ev.Properties.VariableNames), "Evts must have column '%s'.", nm);
     end
+
     ev.kind = string(ev.kind);
     ev.modality = string(ev.modality);
     ev.identifier = string(ev.identifier);
-    
+
     % Fill missing ends
     for i = 1:height(ev)
-        if ev.kind(i)=="start"
+        if ev.kind(i) == "start"
             ev.tStart(i) = 0;
             ev.tEnd(i)   = 0;
-        elseif ev.kind(i)=="choice"
-            if ismember("validWindow", ev.Properties.VariableNames) && isfinite(ev.validWindow(i)) && ev.validWindow(i)>0
+
+        elseif ev.kind(i) == "choice"
+            if ismember("validWindow", ev.Properties.VariableNames) && ...
+                    isfinite(ev.validWindow(i)) && ev.validWindow(i) > 0
                 ev.tEnd(i) = ev.tStart(i) + ev.validWindow(i);
             end
+
         else
             md = ev.maxDur(i);
-            if isfinite(md) && md>0
+            if isfinite(md) && md > 0
                 ev.tEnd(i) = ev.tStart(i) + md;
             end
         end
     end
+
+    % ---------------- sort by preset tStart ----------------
+    % Rule:
+    %   1) sort by tStart ascending
+    %   2) if cue and choice share the same tStart, cue goes before choice
+    %   3) otherwise keep original relative order as much as possible
+    n = height(ev);
+    origOrder = (1:n)';
+
+    priority = zeros(n,1);
+    priority(ev.kind == "cue")    = 0;
+    priority(ev.kind == "choice") = 1;
+    priority(~ismember(ev.kind, ["cue","choice"])) = 0;
+
+    ev.sort_tStart   = ev.tStart;
+    ev.sort_priority = priority;
+    ev.sort_orig     = origOrder;
+
+    ev = sortrows(ev, {'sort_tStart','sort_priority','sort_orig'}, {'ascend','ascend','ascend'});
+
+    ev(:, {'sort_tStart','sort_priority','sort_orig'}) = [];
 end
 
 function [ev, rl, info] = reconcileIdentifiers_(ev, rl)
