@@ -131,7 +131,7 @@ assert(~isempty(startIdx), "Start event is required in event flow.");
 % ----------------------------- trial loop -----------------------------
 % flush key board press events
 keys = zeros(1,256);
-try keys(KbName('space'))  = 1; end
+try keys(KbName('space'))  = 1; end %#ok<*TRYNC>
 try keys(KbName('esc'))    = 1; end
 try keys(KbName('escape')) = 1; end
 KbQueueRelease(-1);
